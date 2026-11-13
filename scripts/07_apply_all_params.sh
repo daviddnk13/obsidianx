@@ -47,7 +47,7 @@ EOF
 log "Emisión OBX OK"
 
 header "PASO 4: Mensaje génesis"
-find $CORE_DIR/src -name "*.cpp" | xargs grep -l "Monero is not a backdoor" 2>/dev/null | while read f; do
+find $CORE_DIR/src -name "*.cpp" | xargs (grep -l "Monero is not a backdoor" || true) 2>/dev/null | while read f; do
     sed -i 's/Monero is not a backdoor/ObsidianX - Privacy is not a crime - 2024/' "$f"
     log "Génesis: $f"
 done
@@ -62,6 +62,8 @@ print('  Network ID: {' + ', '.join(b) + '}')
 "
 
 header "PASO 6: Commit Git"
+git config user.name 'ObsidianX'
+git config user.email 'obx@obsidianx.local'
 git add -A
 git commit -m "feat: apply ObsidianX parameters - OBX fork from Monero v0.18.3.3"
 log "Commit OK"
