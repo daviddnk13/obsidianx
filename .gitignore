@@ -43,3 +43,5 @@ Thumbs.db
 
 # Proteger billetera genesis privada
 mi_billetera_genesis.json
+mi_billetera_genesis.enc
+*.enc
