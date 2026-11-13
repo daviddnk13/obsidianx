@@ -1,0 +1,33 @@
+name: ObsidianX Cloud Node 24/7 (Auto-KeepAlive & Sync)
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '*/20 * * * *'
+
+permissions:
+  contents: write
+
+jobs:
+  keepalive-node:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout ObsidianX Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Run OBX Cloud Node 24/7 Sync & Mine
+        run: |
+          python3 scripts/obx_cloud_node_24_7.py
+
+      - name: Commit and Push Updated Chain State
+        run: |
+          git config user.name "ObsidianX Cloud Node"
+          git config user.email "node@obsidianx.local"
+          git add network-nodes PUBLIC_NETWORK_STATUS.md
+          git diff --staged --quiet || git commit -m "chore(node-24-7): sync block & update PUBLIC_NETWORK_STATUS"
+          git push

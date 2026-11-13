@@ -1,0 +1,48 @@
+name: Build ObsidianX (Linux & Android ARM64)
+
+on:
+  push:
+    branches: [ "main", "master" ]
+  workflow_dispatch:
+
+jobs:
+  build-linux-x64:
+    name: Compilar Nodo para Laptop (Ubuntu x86_64)
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Descargar tu repositorio ObsidianX
+        uses: actions/checkout@v4
+
+      - name: Instalar dependencias de Monero/ObsidianX
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential cmake pkg-config libssl-dev libzmq3-dev \
+            libunbound-dev libsodium-dev libunwind8-dev liblzma-dev libreadline6-dev \
+            libldns-dev libexpat1-dev libpgm-dev qttools5-dev-tools libhidapi-dev \
+            libusb-1.0-0-dev libprotobuf-dev protobuf-compiler libudev-dev \
+            libboost-chrono-dev libboost-date-time-dev libboost-filesystem-dev \
+            libboost-locale-dev libboost-program-options-dev libboost-regex-dev \
+            libboost-serialization-dev libboost-system-dev libboost-thread-dev \
+            python3 ccache git
+
+      - name: Clonar Monero v0.18.3.3 y aplicar parches ObsidianX
+        run: |
+          mkdir -p $HOME/obsidianx
+          git clone --branch v0.18.3.3 --depth 1 --recursive https://github.com/monero-project/monero.git $HOME/obsidianx/core-chain
+          chmod +x scripts/07_apply_all_params.sh
+          ./scripts/07_apply_all_params.sh
+
+      - name: Compilar daemon (monerod -> obsidianxd) y wallet
+        run: |
+          cd $HOME/obsidianx/core-chain/build/release
+          make -j$(nproc) daemon simplewallet
+          mv bin/monerod bin/obsidianxd
+          mv bin/monero-wallet-cli bin/obsidianx-wallet-cli
+
+      - name: Subir binarios listos para descargar en Cuba
+        uses: actions/upload-artifact@v4
+        with:
+          name: obsidianx-linux-x64-binaries
+          path: |
+            ~/obsidianx/core-chain/build/release/bin/obsidianxd
+            ~/obsidianx/core-chain/build/release/bin/obsidianx-wallet-cli

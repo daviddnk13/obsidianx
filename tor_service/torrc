@@ -1,0 +1,5 @@
+DataDirectory D:\obsidianx-windows-david\tor_service\data
+HiddenServiceDir D:\obsidianx-windows-david\tor_service\hidden_service
+HiddenServicePort 28080 127.0.0.1:28080
+HiddenServicePort 28081 127.0.0.1:28081
+SocksPort 9050

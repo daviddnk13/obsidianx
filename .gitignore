@@ -1,0 +1,45 @@
+# Builds
+build/
+core-chain/build/
+**/CMakeFiles/
+**/CMakeCache.txt
+**/cmake_install.cmake
+**/Makefile
+
+# Runtime / chain data
+testnet-data/
+*.log
+logs/
+*.pid
+
+# Secrets / credentials
+*.pem
+*.key
+*.keys
+*.wallet
+*.seed
+.env
+.env.*
+
+# Archives / downloads
+*.tar
+*.tar.gz
+*.tgz
+*.zip
+*.bz2
+*.xz
+
+# Python / misc caches
+__pycache__/
+*.pyc
+*.pyo
+.cache/
+
+# Editor / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Proteger billetera genesis privada
+mi_billetera_genesis.json
