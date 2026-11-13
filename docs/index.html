@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ObsidianX (OBX) — Explorador y Billetera Web</title>
+  <style>
+    :root {
+      --bg: #0b0e14;
+      --card: #131924;
+      --border: #232d3f;
+      --text: #e6edf3;
+      --muted: #8b949e;
+      --accent: #38bdf8;
+      --green: #22c55e;
+      --warn: #f59e0b;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.5;
+    }
+    .wrap { max-width: 980px; margin: 0 auto; padding: 24px 16px 48px; }
+    header {
+      display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center;
+      gap: 12px; padding-bottom: 18px; border-bottom: 1px solid var(--border);
+    }
+    .brand h1 { margin: 0; font-size: 1.6rem; letter-spacing: 0.3px; }
+    .brand p { margin: 4px 0 0; color: var(--muted); font-size: 0.92rem; }
+    .pill {
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 6px 12px; border-radius: 999px; background: #102a1d; color: var(--green);
+      border: 1px solid #1d4d32; font-size: 0.85rem; font-weight: 600;
+    }
+    .grid {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 12px; margin: 20px 0;
+    }
+    .stat {
+      background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px;
+    }
+    .stat .label { color: var(--muted); font-size: 0.8rem; text-transform: uppercase; }
+    .stat .val { font-size: 1.35rem; font-weight: 700; margin-top: 4px; color: var(--accent); }
+    .card {
+      background: var(--card); border: 1px solid var(--border); border-radius: 12px;
+      padding: 18px; margin-top: 18px;
+    }
+    .card h2 { margin: 0 0 8px; font-size: 1.15rem; }
+    .muted { color: var(--muted); font-size: 0.9rem; }
+    button {
+      background: var(--accent); color: #06131f; border: 0; border-radius: 8px;
+      padding: 10px 16px; font-weight: 700; cursor: pointer; font-size: 0.92rem;
+    }
+    button.secondary {
+      background: transparent; color: var(--text); border: 1px solid var(--border); margin-left: 8px;
+    }
+    button:hover { opacity: 0.9; }
+    .wallet-box {
+      margin-top: 14px; background: #0a0d12; border: 1px solid var(--border);
+      border-radius: 8px; padding: 14px; display: none; font-family: ui-monospace, monospace;
+      font-size: 0.84rem; word-break: break-all;
+    }
+    .wallet-row { margin-bottom: 10px; }
+    .wallet-row strong { color: var(--accent); display: block; margin-bottom: 2px; font-family: system-ui, sans-serif; }
+    table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 0.88rem; }
+    th, td { text-align: left; padding: 10px 8px; border-bottom: 1px solid var(--border); }
+    th { color: var(--muted); font-weight: 600; }
+    .mono { font-family: ui-monospace, monospace; font-size: 0.82rem; }
+    .warn-note {
+      margin-top: 10px; padding: 10px 12px; border-radius: 8px;
+      background: rgba(245, 158, 11, 0.1); border: 1px solid rgba(245, 158, 11, 0.35);
+      color: #fcd34d; font-size: 0.85rem;
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <div class="brand">
+        <h1>ObsidianX (OBX)</h1>
+        <p>Privacidad Total + Agente IA P2P + Resiliencia Anti-Apagones</p>
+      </div>
+      <div class="pill" id="net-status">Cargando cadena...</div>
+    </header>
+
+    <div class="grid">
+      <div class="stat"><div class="label">Altura de Bloques</div><div class="val" id="s-height">--</div></div>
+      <div class="stat"><div class="label">Suministro Emitido</div><div class="val" id="s-supply">--</div></div>
+      <div class="stat"><div class="label">Dificultad Actual</div><div class="val" id="s-diff">--</div></div>
+      <div class="stat"><div class="label">Puertos Red / Tor</div><div class="val">28080 / 28084</div></div>
+    </div>
+
+    <div class="card">
+      <h2>Generador de Billetera OBX (100% Local en tu Navegador)</h2>
+      <p class="muted">Tus llaves se crean usando <code>crypto.getRandomValues</code> y <code>SHA-256</code> directamente en tu dispositivo. Nada se envía a internet.</p>
+      <button onclick="generateWallet()">Generar Nueva Billetera OBX</button>
+      <button class="secondary" id="btn-dl" style="display:none" onclick="downloadWallet()">Descargar JSON</button>
+
+      <div class="wallet-box" id="wallet-box">
+        <div class="wallet-row"><strong>Dirección Pública OBX:</strong><span id="w-addr"></span></div>
+        <div class="wallet-row"><strong>Llave Privada (Hex):</strong><span id="w-priv"></span></div>
+        <div class="wallet-row"><strong>Semilla de 25 Palabras:</strong><span id="w-seed"></span></div>
+        <div class="warn-note">Anota tus 25 palabras en papel y nunca compartas tu llave privada ni la subas a GitHub.</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Últimos Bloques de la Cadena</h2>
+      <p class="muted">Sincronizado desde <code>network-nodes/node1/blockchain.json</code>.</p>
+      <div style="overflow-x:auto;">
+        <table>
+          <thead>
+            <tr><th>Altura</th><th>Recompensa</th><th>Dificultad</th><th>Hash</th><th>Mensaje</th></tr>
+          </thead>
+          <tbody id="blocks-body">
+            <tr><td colspan="5" class="muted">Consultando bloques...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const WORDS = [
+      "obsidiana","cuba","privacidad","escudo","bloque","minero","cripto","futuro",
+      "fuego","roca","noche","libertad","nodo","puente","enlace","semilla",
+      "boveda","firme","sombra","rayo","energia","guardian","red","soberano",
+      "clave","tormenta","pulso","anillo","sigilo","vector","cumbre","faro"
+    ];
+    let lastWallet = null;
+
+    async function sha256Hex(str) {
+      const buf = new TextEncoder().encode(str);
+      const hash = await crypto.subtle.digest("SHA-256", buf);
+      return Array.from(new Uint8Array(hash)).map(b => b.toString(16).padStart(2, "0")).join("");
+    }
+
+    async function generateWallet() {
+      const rand = new Uint8Array(32);
+      crypto.getRandomValues(rand);
+      const priv = Array.from(rand).map(b => b.toString(16).padStart(2, "0")).join("");
+      const addrHash = await sha256Hex("OBX-PUB:" + priv);
+      const addr = "OBX4" + addrHash.slice(0, 60);
+
+      const seedIdx = new Uint8Array(25);
+      crypto.getRandomValues(seedIdx);
+      const seed = Array.from(seedIdx).map(v => WORDS[v % WORDS.length]).join(" ");
+
+      lastWallet = {
+        network: "obsidianx-mainnet-2024",
+        ticker: "OBX",
+        address: addr,
+        private_key_hex: priv,
+        mnemonic_seed: seed,
+        created_at: new Date().toISOString()
+      };
+
+      document.getElementById("w-addr").textContent = addr;
+      document.getElementById("w-priv").textContent = priv;
+      document.getElementById("w-seed").textContent = seed;
+      document.getElementById("wallet-box").style.display = "block";
+      document.getElementById("btn-dl").style.display = "inline-block";
+    }
+
+    function downloadWallet() {
+      if (!lastWallet) return;
+      const blob = new Blob([JSON.stringify(lastWallet, null, 2)], { type: "application/json" });
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = "obx_wallet_" + lastWallet.address.slice(0, 10) + ".json";
+      a.click();
+    }
+
+    async function loadChain() {
+      const urls = [
+        "https://raw.githubusercontent.com/daviddnk13/obsidianx/main/network-nodes/node1/blockchain.json",
+        "../network-nodes/node1/blockchain.json"
+      ];
+      let data = null;
+      for (const u of urls) {
+        try {
+          const res = await fetch(u + "?t=" + Date.now());
+          if (res.ok) {
+            const text = (await res.text()).replace(/^\uFEFF/, "");
+            data = JSON.parse(text);
+            break;
+          }
+        } catch (e) {}
+      }
+      if (!Array.isArray(data) || data.length === 0) {
+        document.getElementById("net-status").textContent = "Sin conexión a la cadena";
+        return;
+      }
+
+      const last = data[data.length - 1];
+      const total = data.reduce((acc, b) => acc + Number(b.reward_obx || 0), 0);
+
+      document.getElementById("net-status").textContent = "Red Activa (" + data.length + " bloques)";
+      document.getElementById("s-height").textContent = "#" + last.height;
+      document.getElementById("s-supply").textContent = total.toLocaleString("en-US", { maximumFractionDigits: 2 }) + " OBX";
+      document.getElementById("s-diff").textContent = last.difficulty;
+
+      const recent = data.slice(-12).reverse();
+      document.getElementById("blocks-body").innerHTML = recent.map(b => `
+        <tr>
+          <td><strong>#${b.height}</strong></td>
+          <td>${Number(b.reward_obx).toLocaleString("en-US")} OBX</td>
+          <td>${b.difficulty}</td>
+          <td class="mono">${String(b.hash).slice(0, 18)}...</td>
+          <td>${String(b.message || "").replace(/</g, "&lt;")}</td>
+        </tr>
+      `).join("");
+    }
+
+    loadChain();
+  </script>
+</body>
+</html>
