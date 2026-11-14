@@ -181,6 +181,9 @@ class ObsidianXAIGuardianV3:
                 self.blackout_safe_flush()
 
 
+ObsidianXAIGuardian = ObsidianXAIGuardianV3
+ObsidianXAIGuardianV3.run_forever = ObsidianXAIGuardianV3.run
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="ObsidianX AI Guardian v3.0")
     parser.add_argument("--rpc-host", default=DEFAULT_RPC_HOST)

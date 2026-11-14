@@ -48,7 +48,7 @@ def get_block_reward_obx(height: int) -> float:
 
 def create_wallet():
     if os.path.exists(WALLET_FILE):
-        with open(WALLET_FILE, "r", encoding="utf-8") as f:
+        with open(WALLET_FILE, "r", encoding="utf-8-sig") as f:
             w = json.load(f)
         print("================================================================")
         print(" [OBX-WALLET] Ya tienes una Billetera Génesis creada:")
@@ -77,7 +77,7 @@ def create_wallet():
         "mnemonic_seed": seed_words,
         "created_at": time.strftime("%Y-%m-%d %H:%M:%S"),
     }
-    with open(WALLET_FILE, "w", encoding="utf-8") as f:
+    with open(WALLET_FILE, "w", encoding="utf-8-sig") as f:
         json.dump(wallet_data, f, indent=2, ensure_ascii=False)
         f.flush()
         os.fsync(f.fileno())
@@ -109,7 +109,7 @@ class BlockchainState:
         primary = self.chain_files[0]
         if os.path.exists(primary):
             try:
-                with open(primary, "r", encoding="utf-8") as f:
+                with open(primary, "r", encoding="utf-8-sig") as f:
                     data = json.load(f)
                     if isinstance(data, list) and len(data) > 0:
                         return data
@@ -136,7 +136,7 @@ class BlockchainState:
         payload = json.dumps(blocks, indent=2)
         for cf in self.chain_files:
             tmp = cf + ".tmp"
-            with open(tmp, "w", encoding="utf-8") as f:
+            with open(tmp, "w", encoding="utf-8-sig") as f:
                 f.write(payload)
                 f.flush()
                 os.fsync(f.fileno())
