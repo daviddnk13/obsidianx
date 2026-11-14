@@ -871,5 +871,14 @@
     "reward_obx": 20.0,
     "difficulty": 49,
     "message": "Mined by ObsidianX Cloud Node 24/7 (GitHub Actions)"
+  },
+  {
+    "height": 97,
+    "hash": "430429a95ee75a8f9196c6af5cf90fc98967d5176643f9f1d95bea99b65647bb",
+    "prev_hash": "d62c7626bdd66b48a46f30123fc30a9cc0d361d3c732dbdca036285987297d7e",
+    "timestamp": 1794643206,
+    "reward_obx": 20.0,
+    "difficulty": 49,
+    "message": "Mined by ObsidianX Cloud Node 24/7 (GitHub Actions)"
   }
 ]
