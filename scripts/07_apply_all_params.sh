@@ -15,6 +15,8 @@ sed -i 's/CRYPTONOTE_NAME.*"monero"/CRYPTONOTE_NAME                         "obs
 sed -i 's/P2P_DEFAULT_PORT[[:space:]]*18080/P2P_DEFAULT_PORT 28080/g' "$CONFIG"
 sed -i 's/RPC_DEFAULT_PORT[[:space:]]*18081/RPC_DEFAULT_PORT 28081/g' "$CONFIG"
 sed -i 's/DIFFICULTY_WINDOW[[:space:]]*720/DIFFICULTY_WINDOW 60/g' "$CONFIG"
+sed -i 's/DIFFICULTY_CUT[[:space:]]*60/DIFFICULTY_CUT 6/g' "$CONFIG"
+sed -i 's/DIFFICULTY_LAG[[:space:]]*15/DIFFICULTY_LAG 2/g' "$CONFIG"
 grep "CRYPTONOTE_NAME" "$CONFIG" | head -1
 log "Configuración base y ventana de 60 bloques OK"
 
