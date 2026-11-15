@@ -141,6 +141,8 @@ PYEOF
 sed -i '/m_seed_nodes_list.push_back/d' "$NET_NODE"
 log "Verified: Monero seed nodes removed from net_node.inl"
 
+
+sed -i '/on_start_mining(/,/CHECK_CORE_READY();/ s/CHECK_CORE_READY();/\/\/ OBX allow P2P mining/' "$CORE_DIR/src/rpc/core_rpc_server.cpp"
 step "7. CMake Configure (Release + Static Internal Libs)"
 mkdir -p "$CORE_DIR/build/release"
 cd "$CORE_DIR/build/release"
