@@ -1,0 +1,3 @@
+User-agent: *
+Allow: /
+Sitemap: https://daviddnk13.github.io/obsidianx/sitemap.xml
