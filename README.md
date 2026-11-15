@@ -60,3 +60,12 @@ El script `scripts/obx_real_explorer.py` consulta únicamente `get_info` y `get_
 
 - **Nodo Oculto Tor (.onion)**: 3txl2dzhuq424zrpp6bfwfgbgjcsqcironoladfpak43utmtqxrtylid.onion:38083
 - **Conectar por Tor**: ./obsidianxd --p2p-bind-port 38080 --rpc-bind-port 38081 --tx-proxy tor,127.0.0.1:9050,16 --add-priority-node 3txl2dzhuq424zrpp6bfwfgbgjcsqcironoladfpak43utmtqxrtylid.onion:38083
+
+## Unirse a la Testnet en 1 Comando (Linux + Docker)
+
+    curl -sSL [https://raw.githubusercontent.com/daviddnk13/obsidianx/main/scripts/unirse_testnet.sh](https://raw.githubusercontent.com/daviddnk13/obsidianx/main/scripts/unirse_testnet.sh) | bash
+
+* Explorador HTTPS: [https://obsidianx-obx.duckdns.org](https://obsidianx-obx.duckdns.org)
+* Clearnet Seed: 92.5.87.63:38080
+* Tor Hidden Service: 3txl2dzhuq424zrpp6bfwfgbgjcsqcironoladfpak43utmtqxrtylid.onion:38083
+* Comunidad Telegram: [https://t.me/ObsidianX_OBX](https://t.me/ObsidianX_OBX)

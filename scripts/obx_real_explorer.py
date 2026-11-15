@@ -192,6 +192,16 @@ class ReadOnlyExplorerHandler(http.server.BaseHTTPRequestHandler):
 <head>
 <meta charset="UTF-8">
 {refresh_meta}
+<meta name="description" content="Explorador oficial en vivo de ObsidianX (OBX) Testnet: cadena CryptoNote C++ con RingCT, CLSAG, Bulletproofs+, RandomX y telemetria AI Guardian.">
+<meta property="og:type" content="website">
+<meta property="og:title" content="ObsidianX (OBX) — Explorador C++ & AI Guardian">
+<meta property="og:description" content="Red Testnet Fair Launch (0% premine). RingCT + CLSAG + RandomX + Tor Hidden Service.">
+<meta property="og:url" content="https://obsidianx-obx.duckdns.org/">
+<meta name="description" content="Explorador oficial en vivo de ObsidianX (OBX) Testnet: cadena CryptoNote C++ con RingCT, CLSAG, Bulletproofs+, RandomX y telemetria AI Guardian.">
+<meta property="og:type" content="website">
+<meta property="og:title" content="ObsidianX (OBX) — Explorador C++ & AI Guardian">
+<meta property="og:description" content="Red Testnet Fair Launch (0% premine). RingCT + CLSAG + RandomX + Tor Hidden Service.">
+<meta property="og:url" content="https://obsidianx-obx.duckdns.org/">
 <title>ObsidianX (OBX) — Explorador C++ & AI Guardian</title>
 <style>
   body {{ background:#070b14; color:#e2e8f0; font-family:system-ui,sans-serif; margin:0; padding:24px; }}
