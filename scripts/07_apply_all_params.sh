@@ -114,20 +114,6 @@ p = sys.argv[1]
 txt = open(p, 'r', encoding='utf-8').read()
 new_table = """const hardfork_t mainnet_hard_forks[] = {
   { 1, 0, 0, 1341378000 },
-  { 2, 1, 0, 1700000000 },
-  { 3, 1, 0, 1700000000 },
-  { 4, 1, 0, 1700000000 },
-  { 5, 1, 0, 1700000000 },
-  { 6, 1, 0, 1700000000 },
-  { 7, 1, 0, 1700000000 },
-  { 8, 1, 0, 1700000000 },
-  { 9, 1, 0, 1700000000 },
-  { 10, 1, 0, 1700000000 },
-  { 11, 1, 0, 1700000000 },
-  { 12, 1, 0, 1700000000 },
-  { 13, 1, 0, 1700000000 },
-  { 14, 1, 0, 1700000000 },
-  { 15, 1, 0, 1700000000 },
   { 16, 1, 0, 1700000000 },
 };"""
 new_txt, n = re.subn(
@@ -139,6 +125,46 @@ assert n == 1, "mainnet_hard_forks table not found in hardforks.cpp!"
 open(p, 'w', encoding='utf-8').write(new_txt)
 print("Verified: Hardforks v16 (RingCT/CLSAG/Bulletproofs+/RandomX) active from Block 1")
 PYEOF
+
+python3 - "$CORE_DIR/src/wallet/wallet2.cpp" << 'PYEOF'
+import sys, re
+p = sys.argv[1]
+txt = open(p, 'r', encoding='utf-8').read()
+new_fn = """void check_block_hard_fork_version(cryptonote::network_type nettype, uint8_t hf_version, uint64_t height, bool &wallet_is_outdated, bool &daemon_is_outdated)
+{
+  const size_t wallet_num_hard_forks = nettype == TESTNET ? num_testnet_hard_forks
+    : nettype == STAGENET ? num_stagenet_hard_forks : num_mainnet_hard_forks;
+  const hardfork_t *wallet_hard_forks = nettype == TESTNET ? testnet_hard_forks
+    : nettype == STAGENET ? stagenet_hard_forks : mainnet_hard_forks;
+
+  size_t idx = wallet_num_hard_forks;
+  for (size_t i = 0; i < wallet_num_hard_forks; ++i)
+  {
+    if (wallet_hard_forks[i].version == hf_version)
+    {
+      idx = i;
+      break;
+    }
+  }
+  wallet_is_outdated = idx == wallet_num_hard_forks;
+  if (wallet_is_outdated)
+    return;
+
+  uint64_t start_height = hf_version == 1 ? 0 : wallet_hard_forks[idx].height;
+  uint64_t end_height = idx + 1 >= wallet_num_hard_forks
+    ? std::numeric_limits<uint64_t>::max()
+    : wallet_hard_forks[idx + 1].height;
+
+  daemon_is_outdated = height < start_height || height >= end_height;
+}"""
+new_txt, n = re.subn(
+    r'void check_block_hard_fork_version\(cryptonote::network_type nettype, uint8_t hf_version, uint64_t height, bool &wallet_is_outdated, bool &daemon_is_outdated\)\s*\{[\s\S]*?daemon_is_outdated = height < start_height \|\| height >= end_height;\s*\}',
+    new_fn,
+    txt, count=1
+)
+assert n == 1, "check_block_hard_fork_version not found in wallet2.cpp!"
+open(p, 'w', encoding='utf-8').write(new_txt)
+print("Verified: wallet2.cpp check_block_hard_fork_version patched for OBX")
 
 step "6. Clear Monero Checkpoints & Seed Nodes"
 python3 - "$CHECKPOINTS" << 'PYEOF'
