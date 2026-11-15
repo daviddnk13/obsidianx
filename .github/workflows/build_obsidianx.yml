@@ -14,6 +14,21 @@ jobs:
     runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v4
+      - name: Verify emission math (no uint64 overflow)
+        run: |
+          python3 - << 'PYEOF'
+          COIN = 10**12
+          CAP = 18_000_000 * COIN
+          TAIL = 600_000_000_000
+          assert CAP < (1 << 64), "uint64 overflow!"
+          first = CAP >> 20
+          assert 17 * COIN < first < 18 * COIN, f"Unexpected first reward: {first/COIN}"
+          gen = 0
+          for _ in range(10000):
+              r = TAIL if gen >= CAP else max(TAIL, (CAP - gen) >> 20)
+              gen += r
+          print(f"Emission test OK: first_reward={first/COIN:.6f} OBX, 10k_blocks={gen/COIN:.2f} OBX")
+          PYEOF
       - name: Install Monero/ObsidianX build dependencies
         run: |
           sudo apt-get update
@@ -27,12 +42,13 @@ jobs:
       - name: Compile daemon, simplewallet, and wallet-rpc
         run: |
           cd ~/obsidianx/core-chain/build/release
-          cmake --build . --target daemon simplewallet wallet_rpc_server -j$(nproc)
+          make -j$(nproc) daemon simplewallet wallet_rpc_server
           mv bin/monerod bin/obsidianxd
           mv bin/monero-wallet-cli bin/obsidianx-wallet-cli
           mv bin/monero-wallet-rpc bin/obsidianx-wallet-rpc
-          sha256sum bin/obsidianxd bin/obsidianx-wallet-cli bin/obsidianx-wallet-rpc > bin/SHA256SUMS-linux.txt
-          zip -j bin/obsidianx-linux-x86_64.zip bin/obsidianxd bin/obsidianx-wallet-cli bin/obsidianx-wallet-rpc bin/SHA256SUMS-linux.txt
+          cp "$GITHUB_WORKSPACE/LICENSE" bin/LICENSE
+          sha256sum bin/obsidianxd bin/obsidianx-wallet-cli bin/obsidianx-wallet-rpc bin/LICENSE > bin/SHA256SUMS-linux.txt
+          zip -j bin/obsidianx-linux-x86_64.zip bin/obsidianxd bin/obsidianx-wallet-cli bin/obsidianx-wallet-rpc bin/LICENSE bin/SHA256SUMS-linux.txt
       - name: Upload compiled Linux binaries
         uses: actions/upload-artifact@v4
         with:
@@ -44,51 +60,12 @@ jobs:
             ~/obsidianx/core-chain/build/release/bin/SHA256SUMS-linux.txt
             ~/obsidianx/core-chain/build/release/bin/obsidianx-linux-x86_64.zip
 
-  build-windows:
-    runs-on: windows-latest
-    continue-on-error: true
-    defaults:
-      run:
-        shell: msys2 {0}
-    steps:
-      - uses: actions/checkout@v4
-      - uses: msys2/setup-msys2@v2
-        with:
-          msystem: UCRT64
-          update: true
-          install: >-
-            git make python3 zip mingw-w64-ucrt-x86_64-toolchain mingw-w64-ucrt-x86_64-cmake
-            mingw-w64-ucrt-x86_64-boost mingw-w64-ucrt-x86_64-openssl
-            mingw-w64-ucrt-x86_64-zeromq mingw-w64-ucrt-x86_64-libsodium
-            mingw-w64-ucrt-x86_64-unbound mingw-w64-ucrt-x86_64-protobuf
-      - name: Apply ObsidianX patches and compile Windows binaries
-        run: |
-          chmod +x scripts/07_apply_all_params.sh
-          ./scripts/07_apply_all_params.sh
-          cd ~/obsidianx/core-chain/build/release
-          cmake --build . --target daemon simplewallet wallet_rpc_server -j$(nproc)
-          mv bin/monerod.exe bin/obsidianxd.exe
-          mv bin/monero-wallet-cli.exe bin/obsidianx-wallet-cli.exe
-          mv bin/monero-wallet-rpc.exe bin/obsidianx-wallet-rpc.exe
-          sha256sum bin/obsidianxd.exe bin/obsidianx-wallet-cli.exe bin/obsidianx-wallet-rpc.exe > bin/SHA256SUMS-win64.txt
-          zip -j bin/obsidianx-win64.zip bin/obsidianxd.exe bin/obsidianx-wallet-cli.exe bin/obsidianx-wallet-rpc.exe bin/SHA256SUMS-win64.txt
-      - name: Upload compiled Windows binaries
-        uses: actions/upload-artifact@v4
-        with:
-          name: obsidianx-win64
-          path: |
-            ~/obsidianx/core-chain/build/release/bin/obsidianxd.exe
-            ~/obsidianx/core-chain/build/release/bin/obsidianx-wallet-cli.exe
-            ~/obsidianx/core-chain/build/release/bin/obsidianx-wallet-rpc.exe
-            ~/obsidianx/core-chain/build/release/bin/SHA256SUMS-win64.txt
-            ~/obsidianx/core-chain/build/release/bin/obsidianx-win64.zip
-
   publish-release:
     if: startsWith(github.ref, 'refs/tags/v')
-    needs: [ build-linux, build-windows ]
+    needs: [ build-linux ]
     runs-on: ubuntu-22.04
     steps:
-      - name: Download all artifacts
+      - name: Download Linux artifacts
         uses: actions/download-artifact@v4
         with:
           path: dist
@@ -100,5 +77,3 @@ jobs:
           files: |
             dist/obsidianx-linux-x86_64/obsidianx-linux-x86_64.zip
             dist/obsidianx-linux-x86_64/SHA256SUMS-linux.txt
-            dist/obsidianx-win64/obsidianx-win64.zip
-            dist/obsidianx-win64/SHA256SUMS-win64.txt

@@ -20,8 +20,8 @@ CHECKPOINTS="$CORE_DIR/src/checkpoints/checkpoints.cpp"
 NET_NODE="$CORE_DIR/src/p2p/net_node.inl"
 
 if [ ! -d "$CORE_DIR" ]; then
-    log "Cloning Monero release-v0.18 (latest v0.18.4.x security fixes)..."
-    git clone --branch release-v0.18 --depth 1 --recursive https://github.com/monero-project/monero.git "$CORE_DIR"
+    log "Cloning Monero v0.18.5.4 (pinned official release tag)..."
+    git clone --branch v0.18.5.4 --depth 1 --recursive https://github.com/monero-project/monero.git "$CORE_DIR"
 fi
 
 cd "$CORE_DIR"
@@ -46,7 +46,7 @@ grep -q 'DIFFICULTY_CUT.*15' "$CONFIG" || err "Failed to set DIFFICULTY_CUT = 15
 log "Verified: CRYPTONOTE_NAME, ports 38080/38081/38082, DIFFICULTY_WINDOW=120, DIFFICULTY_CUT=15"
 
 step "2. Custom Base58 Address Prefixes (Isolated from Monero 4... keys)"
-# Mainnet prefix 0x1e2c (starts with 'Ob...')
+# Mainnet prefix 0x1e2c (produces 'Vo...' 97-char Base58 addresses)
 sed -i 's/CRYPTONOTE_PUBLIC_ADDRESS_BASE58_PREFIX = 18;/CRYPTONOTE_PUBLIC_ADDRESS_BASE58_PREFIX = 0x1e2c;/' "$CONFIG"
 sed -i 's/CRYPTONOTE_PUBLIC_INTEGRATED_ADDRESS_BASE58_PREFIX = 19;/CRYPTONOTE_PUBLIC_INTEGRATED_ADDRESS_BASE58_PREFIX = 0x1e2d;/' "$CONFIG"
 sed -i 's/CRYPTONOTE_PUBLIC_SUBADDRESS_BASE58_PREFIX = 42;/CRYPTONOTE_PUBLIC_SUBADDRESS_BASE58_PREFIX = 0x1e2e;/' "$CONFIG"
@@ -70,14 +70,14 @@ open(p, 'w', encoding='utf-8').write(new_txt)
 print(f"Verified: NETWORK_ID injected -> {{ {new_bytes} }}")
 PYEOF
 
-step "4. Fair-Launch Emission (0 Premine, 21M Cap, 0.6 OBX Tail Emission)"
+step "4. Fair-Launch Emission (0 Premine, 18M Base + 0.6 OBX Tail Emission, No uint64 Overflow)"
 cat > "$CORE_DIR/src/obx_emission.h" << 'EOF'
 #pragma once
 #include <cstdint>
 
 namespace obx {
     static constexpr uint64_t COIN_UNIT           = 1000000000000ULL;
-    static constexpr uint64_t MONEY_SUPPLY_CAP    = 21000000ULL * COIN_UNIT; // 21,000,000 OBX
+    static constexpr uint64_t MONEY_SUPPLY_CAP    = 18000000ULL * COIN_UNIT; // 18,000,000 OBX (fits uint64_t safely)
     static constexpr uint64_t TAIL_REWARD_ATOMIC  = 600000000000ULL;         // 0.6 OBX/block tail emission
 
     // Smooth emission curve based on remaining supply (Fair Launch: 0 premine)
