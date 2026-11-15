@@ -1,0 +1,35 @@
+name: Build ObsidianX C++ Core (Ubuntu 22.04)
+
+on:
+  push:
+    branches: [ "main" ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Monero/ObsidianX build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential cmake pkg-config libssl-dev libzmq3-dev \
+            libunbound-dev libsodium-dev libunwind8-dev liblzma-dev libreadline-dev \
+            libldns-dev libexpat1-dev libboost-all-dev python3 git ccache
+      - name: Apply ObsidianX patches and configure CMake
+        run: |
+          chmod +x scripts/07_apply_all_params.sh
+          ./scripts/07_apply_all_params.sh
+      - name: Compile daemon and simplewallet
+        run: |
+          cd ~/obsidianx/core-chain/build/release
+          make -j$(nproc) daemon simplewallet
+          mv bin/monerod bin/obsidianxd
+          mv bin/monero-wallet-cli bin/obsidianx-wallet-cli
+      - name: Upload compiled binaries
+        uses: actions/upload-artifact@v4
+        with:
+          name: obsidianx-linux-x86_64
+          path: |
+            ~/obsidianx/core-chain/build/release/bin/obsidianxd
+            ~/obsidianx/core-chain/build/release/bin/obsidianx-wallet-cli

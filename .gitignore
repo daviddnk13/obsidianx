@@ -1,0 +1,27 @@
+# Builds & C++ artifacts
+build/
+core-chain/
+**/CMakeFiles/
+**/CMakeCache.txt
+**/cmake_install.cmake
+**/Makefile
+
+# Wallets & Private Keys (NEVER COMMIT)
+*.wallet
+*.keys
+*.key
+*.pem
+*.seed
+*.enc
+mi_billetera_*
+.env
+
+# Runtime & Archives
+*.log
+*.zip
+*.7z
+*.tar.gz
+__pycache__/
+*.pyc
+.DS_Store
+Thumbs.db
