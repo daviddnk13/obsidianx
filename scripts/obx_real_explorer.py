@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
-"""ObsidianX (OBX) - Read-Only Block Explorer + Real AI Guardian Telemetry"""
+"""ObsidianX (OBX) - Read-Only Block Explorer + Heuristic Network Monitor"""
 import html
 import http.server
 import json
 import os
 import socketserver
+import threading
 import time
 import urllib.parse
 import urllib.request
@@ -12,8 +13,14 @@ import urllib.request
 DAEMON_RPC = "http://127.0.0.1:38081/json_rpc"
 DAEMON_HTTP = "http://127.0.0.1:38081"
 METRICS_FILE = os.path.expanduser("~/obsidianx/runtime/guardian_metrics.json")
+WEB_HOST = "127.0.0.1"
 WEB_PORT = 8080
+CACHE_TTL_S = 5.0
 ONION_SEED = "3txl2dzhuq424zrpp6bfwfgbgjcsqcironoladfpak43utmtqxrtylid.onion:38083"
+ONION_RPC = "3txl2dzhuq424zrpp6bfwfgbgjcsqcironoladfpak43utmtqxrtylid.onion:38081"
+
+_cache_lock = threading.Lock()
+_cache_data = {"ts": 0.0, "snapshot": None}
 
 
 def rpc_call(method: str, params: dict = None):
@@ -42,6 +49,55 @@ def load_guardian_metrics():
         "avg_block_time_s": 0.0, "anomaly_status": "N/A", "reorgs_detected": 0,
         "mempool_txs": 0, "timestamp": "N/A",
     }
+
+
+def get_cached_snapshot():
+    now = time.time()
+    with _cache_lock:
+        if _cache_data["snapshot"] is not None and (now - _cache_data["ts"]) < CACHE_TTL_S:
+            return _cache_data["snapshot"]
+    try:
+        info = rpc_call("get_info")
+        height = int(info.get("height", 0))
+        diff = int(info.get("difficulty", 0))
+        peers_in = int(info.get("incoming_connections_count", 0))
+        peers_out = int(info.get("outgoing_connections_count", 0))
+        pool_sz = int(info.get("tx_pool_size", 0))
+        emitted_obx = 0.0
+        if height > 0:
+            try:
+                csum = rpc_call("get_coinbase_tx_sum", {"height": 0, "count": height})
+                emitted_obx = float(csum.get("emission_amount", 0)) / 1e12
+            except Exception:
+                emitted_obx = 0.0
+        est_hashrate = round(diff / 120.0, 2) if diff > 0 else 0.0
+        blocks = []
+        for h in range(max(0, height - 15), height):
+            hdr = rpc_call("get_block_header_by_height", {"height": h}).get("block_header", {})
+            if hdr:
+                blocks.append(hdr)
+        snap = {
+            "online": True,
+            "info": info,
+            "height": height,
+            "diff": diff,
+            "peers_in": peers_in,
+            "peers_out": peers_out,
+            "pool_sz": pool_sz,
+            "emitted_obx": emitted_obx,
+            "est_hashrate": est_hashrate,
+            "blocks": blocks,
+        }
+    except Exception:
+        snap = {
+            "online": False, "info": {}, "height": 0, "diff": 0,
+            "peers_in": 0, "peers_out": 0, "pool_sz": 0,
+            "emitted_obx": 0.0, "est_hashrate": 0.0, "blocks": [],
+        }
+    with _cache_lock:
+        _cache_data["ts"] = now
+        _cache_data["snapshot"] = snap
+    return snap
 
 
 def render_search_result(query: str) -> str:
@@ -117,28 +173,29 @@ class ReadOnlyExplorerHandler(http.server.BaseHTTPRequestHandler):
     def do_GET(self):
         parsed = urllib.parse.urlparse(self.path)
         gm = load_guardian_metrics()
+        snap = get_cached_snapshot()
+
         if parsed.path == "/api/info":
-            try:
-                info = rpc_call("get_info")
+            if snap["online"]:
+                info = snap["info"]
                 body = json.dumps({
-                    "height": info.get("height", 0),
-                    "difficulty": info.get("difficulty", 0),
+                    "height": snap["height"],
+                    "difficulty": snap["diff"],
                     "top_block_hash": info.get("top_block_hash", ""),
-                    "incoming_connections_count": info.get("incoming_connections_count", 0),
-                    "outgoing_connections_count": info.get("outgoing_connections_count", 0),
-                    "tx_pool_size": info.get("tx_pool_size", 0),
+                    "incoming_connections_count": snap["peers_in"],
+                    "outgoing_connections_count": snap["peers_out"],
+                    "tx_pool_size": snap["pool_sz"],
+                    "emitted_obx": round(snap["emitted_obx"], 4),
                     "status": info.get("status", "OK"),
                     "ai_guardian": gm,
                 }).encode("utf-8")
                 self.send_response(200)
-                self.send_header("Content-Type", "application/json")
-                self.end_headers()
-                self.wfile.write(body)
-            except Exception:
+            else:
+                body = json.dumps({"error": "obsidianxd daemon offline"}).encode("utf-8")
                 self.send_response(503)
-                self.send_header("Content-Type", "application/json")
-                self.end_headers()
-                self.wfile.write(json.dumps({"error": "obsidianxd daemon offline"}).encode("utf-8"))
+            self.send_header("Content-Type", "application/json")
+            self.end_headers()
+            self.wfile.write(body)
             return
 
         qs = urllib.parse.parse_qs(parsed.query)
@@ -146,35 +203,17 @@ class ReadOnlyExplorerHandler(http.server.BaseHTTPRequestHandler):
         search_html = render_search_result(q_val) if q_val else ""
         refresh_meta = "" if q_val else '<meta http-equiv="refresh" content="5">'
 
-        try:
-            info = rpc_call("get_info")
-            height = int(info.get("height", 0))
-            diff = int(info.get("difficulty", 0))
-            peers_in = int(info.get("incoming_connections_count", 0))
-            peers_out = int(info.get("outgoing_connections_count", 0))
-            pool_sz = int(info.get("tx_pool_size", 0))
-            emitted_obx = 0.0
-            if height > 0:
-                try:
-                    csum = rpc_call("get_coinbase_tx_sum", {"height": 0, "count": height})
-                    emitted_obx = float(csum.get("emission_amount", 0)) / 1e12
-                except Exception:
-                    emitted_obx = 0.0
-            est_hashrate = round(diff / 120.0, 2) if diff > 0 else 0.0
-            blocks = []
-            for h in range(max(0, height - 15), height):
-                hdr = rpc_call("get_block_header_by_height", {"height": h}).get("block_header", {})
-                if hdr:
-                    blocks.append(hdr)
-            daemon_online = True
-        except Exception:
-            height, diff, peers_in, peers_out, pool_sz = 0, 0, 0, 0, 0
-            emitted_obx, est_hashrate = 0.0, 0.0
-            blocks = []
-            daemon_online = False
+        height = snap["height"]
+        diff = snap["diff"]
+        peers_in = snap["peers_in"]
+        peers_out = snap["peers_out"]
+        pool_sz = snap["pool_sz"]
+        emitted_obx = snap["emitted_obx"]
+        est_hashrate = snap["est_hashrate"]
+        daemon_online = snap["online"]
 
         rows = ""
-        for b in reversed(blocks):
+        for b in reversed(snap["blocks"]):
             bh = int(b.get("height", 0))
             bhash = html.escape(str(b.get("hash", "")))
             rew = float(b.get("reward", 0)) / 1e12
@@ -201,17 +240,12 @@ class ReadOnlyExplorerHandler(http.server.BaseHTTPRequestHandler):
 <head>
 <meta charset="UTF-8">
 {refresh_meta}
-<meta name="description" content="Explorador oficial en vivo de ObsidianX (OBX) Testnet: cadena CryptoNote C++ con RingCT, CLSAG, Bulletproofs+, RandomX y telemetria AI Guardian.">
+<meta name="description" content="Explorador oficial en vivo de ObsidianX (OBX) Testnet: cadena CryptoNote C++ con RingCT, CLSAG, Bulletproofs+, RandomX y monitor heuristico.">
 <meta property="og:type" content="website">
-<meta property="og:title" content="ObsidianX (OBX) — Explorador C++ & AI Guardian">
+<meta property="og:title" content="ObsidianX (OBX) — Explorador C++ & Monitor de Red">
 <meta property="og:description" content="Red Testnet Fair Launch (0% premine). RingCT + CLSAG + RandomX + Tor Hidden Service.">
 <meta property="og:url" content="https://obsidianx-obx.duckdns.org/">
-<meta name="description" content="Explorador oficial en vivo de ObsidianX (OBX) Testnet: cadena CryptoNote C++ con RingCT, CLSAG, Bulletproofs+, RandomX y telemetria AI Guardian.">
-<meta property="og:type" content="website">
-<meta property="og:title" content="ObsidianX (OBX) — Explorador C++ & AI Guardian">
-<meta property="og:description" content="Red Testnet Fair Launch (0% premine). RingCT + CLSAG + RandomX + Tor Hidden Service.">
-<meta property="og:url" content="https://obsidianx-obx.duckdns.org/">
-<title>ObsidianX (OBX) — Explorador C++ & AI Guardian</title>
+<title>ObsidianX (OBX) — Explorador C++ & Monitor de Red</title>
 <style>
   body {{ background:#070b14; color:#e2e8f0; font-family:system-ui,sans-serif; margin:0; padding:24px; }}
   .wrap {{ max-width:1120px; margin:0 auto; }}
@@ -238,7 +272,7 @@ class ReadOnlyExplorerHandler(http.server.BaseHTTPRequestHandler):
 <div class="wrap">
   <div class="hdr">
     <div>
-      <h1 style="margin:0;font-size:22px;color:#38bdf8;">ObsidianX (OBX) — Explorador C++ & AI Guardian</h1>
+      <h1 style="margin:0;font-size:22px;color:#38bdf8;">ObsidianX (OBX) — Explorador C++ & Monitor de Red</h1>
       <div style="color:#94a3b8;font-size:13px;margin-top:4px;">Testnet Fair Launch • RingCT + CLSAG + RandomX • Seed: 92.5.87.63:38080</div>
     </div>
     <div class="{badge_cls}">{badge_lbl}</div>
@@ -258,10 +292,10 @@ class ReadOnlyExplorerHandler(http.server.BaseHTTPRequestHandler):
     <div class="card"><div class="lbl">Tiempo Medio Bloque</div><div class="val">{gm.get('avg_block_time_s', 0)}s</div></div>
   </div>
   <div class="ai-bar">
-    <div><span class="lbl">AI Guardian:</span> <strong style="color:#34d399;">{ai_status}</strong></div>
+    <div><span class="lbl">Monitor Heuristico:</span> <strong style="color:#34d399;">{ai_status}</strong></div>
     <div><span class="lbl">Pares Auditados:</span> <strong>{int(gm.get('peers_analyzed', 0))}</strong></div>
     <div><span class="lbl">Baneos Sybil:</span> <strong>{int(gm.get('banned_sybil_total', 0))}</strong></div>
-    <div><span class="lbl">Anomalia Z-Score:</span> <strong>{ai_anom} (Z={gm.get('timing_z_score', 0)})</strong></div>
+    <div><span class="lbl">Anomalia Timing:</span> <strong>{ai_anom} (Z={gm.get('timing_z_score', 0)})</strong></div>
     <div><span class="lbl">Reorgs:</span> <strong>{int(gm.get('reorgs_detected', 0))}</strong></div>
     <div><span class="lbl">Ultima Auditoria:</span> <strong>{ai_ts}</strong></div>
   </div>
@@ -271,10 +305,10 @@ class ReadOnlyExplorerHandler(http.server.BaseHTTPRequestHandler):
   </table>
   <div class="card" style="font-size:13px;line-height:1.6;">
     <div class="lbl" style="margin-bottom:6px;">Conectar un Nodo a ObsidianX Testnet</div>
-    <div><strong>Consenso Verificable:</strong> RandomX PoW • LWMA-1 (N=60) • Target 120s • 0% Premine • Cap 21M + Tail 0.6 OBX</div>
+    <div><strong>Consenso Verificable:</strong> RandomX PoW • LWMA-1 (N=60) • Target 120s • 0% Premine • 18M Base + Tail 0.6 OBX (sin tope duro) • Direcciones Vo...</div>
     <div><strong>Clearnet Seed:</strong> <span class="mono">92.5.87.63:38080</span></div>
     <div><strong>Tor Hidden Service (P2P):</strong> <span class="mono">{ONION_SEED}</span></div>
-    <div><strong>Nodo Remoto Billetera (Tor Restricted RPC):</strong> <span class="mono">3txl2dzhuq424zrpp6bfwfgbgjcsqcironoladfpak43utmtqxrtylid.onion:38081</span></div>
+    <div><strong>Nodo Remoto Billetera (Tor Restricted RPC):</strong> <span class="mono">{ONION_RPC}</span></div>
     <div><strong>Codigo Fuente &amp; Guia:</strong> <a href="https://github.com/daviddnk13/obsidianx" target="_blank">github.com/daviddnk13/obsidianx</a> • <a href="https://t.me/ObsidianX_OBX" target="_blank">Telegram @ObsidianX_OBX</a></div>
   </div>
 </div>
@@ -294,5 +328,5 @@ class ThreadingExplorerServer(socketserver.ThreadingMixIn, http.server.HTTPServe
 
 
 if __name__ == "__main__":
-    with ThreadingExplorerServer(("0.0.0.0", WEB_PORT), ReadOnlyExplorerHandler) as srv:
+    with ThreadingExplorerServer((WEB_HOST, WEB_PORT), ReadOnlyExplorerHandler) as srv:
         srv.serve_forever()
