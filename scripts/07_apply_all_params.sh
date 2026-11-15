@@ -165,6 +165,7 @@ new_txt, n = re.subn(
 assert n == 1, "check_block_hard_fork_version not found in wallet2.cpp!"
 open(p, 'w', encoding='utf-8').write(new_txt)
 print("Verified: wallet2.cpp check_block_hard_fork_version patched for OBX")
+PYEOF
 
 step "6. Clear Monero Checkpoints & Seed Nodes"
 python3 - "$CHECKPOINTS" << 'PYEOF'
