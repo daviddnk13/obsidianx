@@ -3,7 +3,11 @@ name: Build ObsidianX C++ Core
 on:
   push:
     branches: [ "main" ]
+    tags: [ "v*" ]
   workflow_dispatch:
+
+permissions:
+  contents: write
 
 jobs:
   build-linux:
@@ -15,7 +19,7 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y build-essential cmake pkg-config libssl-dev libzmq3-dev \
             libunbound-dev libsodium-dev libunwind8-dev liblzma-dev libreadline-dev \
-            libldns-dev libexpat1-dev libboost-all-dev python3 git ccache
+            libldns-dev libexpat1-dev libboost-all-dev python3 git ccache zip
       - name: Apply ObsidianX patches and configure CMake
         run: |
           chmod +x scripts/07_apply_all_params.sh
@@ -28,6 +32,7 @@ jobs:
           mv bin/monero-wallet-cli bin/obsidianx-wallet-cli
           mv bin/monero-wallet-rpc bin/obsidianx-wallet-rpc
           sha256sum bin/obsidianxd bin/obsidianx-wallet-cli bin/obsidianx-wallet-rpc > bin/SHA256SUMS-linux.txt
+          zip -j bin/obsidianx-linux-x86_64.zip bin/obsidianxd bin/obsidianx-wallet-cli bin/obsidianx-wallet-rpc bin/SHA256SUMS-linux.txt
       - name: Upload compiled Linux binaries
         uses: actions/upload-artifact@v4
         with:
@@ -37,6 +42,7 @@ jobs:
             ~/obsidianx/core-chain/build/release/bin/obsidianx-wallet-cli
             ~/obsidianx/core-chain/build/release/bin/obsidianx-wallet-rpc
             ~/obsidianx/core-chain/build/release/bin/SHA256SUMS-linux.txt
+            ~/obsidianx/core-chain/build/release/bin/obsidianx-linux-x86_64.zip
 
   build-windows:
     runs-on: windows-latest
@@ -48,14 +54,13 @@ jobs:
       - uses: actions/checkout@v4
       - uses: msys2/setup-msys2@v2
         with:
-          msystem: MINGW64
+          msystem: UCRT64
           update: true
           install: >-
-            git python3 mingw-w64-x86_64-toolchain mingw-w64-x86_64-cmake
-            mingw-w64-x86_64-boost mingw-w64-x86_64-openssl
-            mingw-w64-x86_64-zeromq mingw-w64-x86_64-libsodium
-            mingw-w64-x86_64-unbound mingw-w64-x86_64-hidapi
-            mingw-w64-x86_64-protobuf
+            git make python3 zip mingw-w64-ucrt-x86_64-toolchain mingw-w64-ucrt-x86_64-cmake
+            mingw-w64-ucrt-x86_64-boost mingw-w64-ucrt-x86_64-openssl
+            mingw-w64-ucrt-x86_64-zeromq mingw-w64-ucrt-x86_64-libsodium
+            mingw-w64-ucrt-x86_64-unbound mingw-w64-ucrt-x86_64-protobuf
       - name: Apply ObsidianX patches and compile Windows binaries
         run: |
           chmod +x scripts/07_apply_all_params.sh
@@ -66,6 +71,7 @@ jobs:
           mv bin/monero-wallet-cli.exe bin/obsidianx-wallet-cli.exe
           mv bin/monero-wallet-rpc.exe bin/obsidianx-wallet-rpc.exe
           sha256sum bin/obsidianxd.exe bin/obsidianx-wallet-cli.exe bin/obsidianx-wallet-rpc.exe > bin/SHA256SUMS-win64.txt
+          zip -j bin/obsidianx-win64.zip bin/obsidianxd.exe bin/obsidianx-wallet-cli.exe bin/obsidianx-wallet-rpc.exe bin/SHA256SUMS-win64.txt
       - name: Upload compiled Windows binaries
         uses: actions/upload-artifact@v4
         with:
@@ -75,3 +81,23 @@ jobs:
             ~/obsidianx/core-chain/build/release/bin/obsidianx-wallet-cli.exe
             ~/obsidianx/core-chain/build/release/bin/obsidianx-wallet-rpc.exe
             ~/obsidianx/core-chain/build/release/bin/SHA256SUMS-win64.txt
+            ~/obsidianx/core-chain/build/release/bin/obsidianx-win64.zip
+
+  publish-release:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: [ build-linux, build-windows ]
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: dist
+      - name: Publish GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          generate_release_notes: true
+          files: |
+            dist/obsidianx-linux-x86_64/obsidianx-linux-x86_64.zip
+            dist/obsidianx-linux-x86_64/SHA256SUMS-linux.txt
+            dist/obsidianx-win64/obsidianx-win64.zip
+            dist/obsidianx-win64/SHA256SUMS-win64.txt
