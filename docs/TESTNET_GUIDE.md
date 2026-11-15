@@ -5,7 +5,7 @@
 * **Launch:** Fair Launch, **0% premine**
 * **PoW & Difficulty:** RandomX, Zawy **LWMA-1 (N=60)**, 120s block target
 * **Privacy:** RingCT + CLSAG + Bulletproofs+ (v16 active from Block 1)
-* **Emission:** 21M OBX cap + 0.6 OBX tail emission
+* **Emission:** 18M OBX base emission + 0.6 OBX/block perpetual tail emission (no hard cap)
 * **Ports:** P2P `38080` | RPC `38081` (localhost only) | ZMQ `38082`
 * **Live Explorer & AI Guardian:** https://obsidianx-obx.duckdns.org
 * **Clearnet P2P Seed:** `92.5.87.63:38080`

@@ -295,7 +295,7 @@ class ReadOnlyExplorerHandler(http.server.BaseHTTPRequestHandler):
     <div><span class="lbl">Monitor Heuristico:</span> <strong style="color:#34d399;">{ai_status}</strong></div>
     <div><span class="lbl">Pares Auditados:</span> <strong>{int(gm.get('peers_analyzed', 0))}</strong></div>
     <div><span class="lbl">Baneos Sybil:</span> <strong>{int(gm.get('banned_sybil_total', 0))}</strong></div>
-    <div><span class="lbl">Anomalia Timing:</span> <strong>{ai_anom} (Z={gm.get('timing_z_score', 0)})</strong></div>
+    <div><span class="lbl">Anomalia Timing:</span> <strong>{ai_anom} (Deriva={gm.get('timing_z_score', 0)})</strong></div>
     <div><span class="lbl">Reorgs:</span> <strong>{int(gm.get('reorgs_detected', 0))}</strong></div>
     <div><span class="lbl">Ultima Auditoria:</span> <strong>{ai_ts}</strong></div>
   </div>

@@ -14,21 +14,6 @@ jobs:
     runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v4
-      - name: Verify emission math (no uint64 overflow)
-        run: |
-          python3 - << 'PYEOF'
-          COIN = 10**12
-          CAP = 18_000_000 * COIN
-          TAIL = 600_000_000_000
-          assert CAP < (1 << 64), "uint64 overflow!"
-          first = CAP >> 20
-          assert 17 * COIN < first < 18 * COIN, f"Unexpected first reward: {first/COIN}"
-          gen = 0
-          for _ in range(10000):
-              r = TAIL if gen >= CAP else max(TAIL, (CAP - gen) >> 20)
-              gen += r
-          print(f"Emission test OK: first_reward={first/COIN:.6f} OBX, 10k_blocks={gen/COIN:.2f} OBX")
-          PYEOF
       - name: Install Monero/ObsidianX build dependencies
         run: |
           sudo apt-get update
@@ -46,9 +31,45 @@ jobs:
           mv bin/monerod bin/obsidianxd
           mv bin/monero-wallet-cli bin/obsidianx-wallet-cli
           mv bin/monero-wallet-rpc bin/obsidianx-wallet-rpc
+          ldd bin/obsidianxd
           cp "$GITHUB_WORKSPACE/LICENSE" bin/LICENSE
           sha256sum bin/obsidianxd bin/obsidianx-wallet-cli bin/obsidianx-wallet-rpc bin/LICENSE > bin/SHA256SUMS-linux.txt
           zip -j bin/obsidianx-linux-x86_64.zip bin/obsidianxd bin/obsidianx-wallet-cli bin/obsidianx-wallet-rpc bin/LICENSE bin/SHA256SUMS-linux.txt
+      - name: Smoke Test C++ Core (regtest + real coinbase emission)
+        run: |
+          BIN="$HOME/obsidianx/core-chain/build/release/bin/obsidianxd"
+          mkdir -p /tmp/obx_regtest
+          "$BIN" --regtest --offline --fixed-difficulty 1 --data-dir /tmp/obx_regtest \
+            --p2p-bind-port 39080 --rpc-bind-ip 127.0.0.1 --rpc-bind-port 39081 \
+            --no-zmq --disable-dns-checkpoints --check-updates disabled --non-interactive \
+            >/tmp/obx_regtest/daemon.log 2>&1 &
+          DPID=$!
+          trap "kill $DPID 2>/dev/null || true" EXIT
+          python3 - << 'PYEOF'
+          import json, time, urllib.request
+          URL = "http://127.0.0.1:39081/json_rpc"
+          def rpc(m, p=None):
+              req = urllib.request.Request(URL, data=json.dumps({"jsonrpc":"2.0","id":"0","method":m,"params":p or {}}).encode(), headers={"Content-Type":"application/json"})
+              with urllib.request.urlopen(req, timeout=5) as r:
+                  return json.loads(r.read().decode())
+          for _ in range(30):
+              try:
+                  res = rpc("get_info")
+                  if res.get("result", {}).get("status") == "OK":
+                      break
+              except Exception:
+                  pass
+              time.sleep(1)
+          else:
+              raise RuntimeError("obsidianxd regtest did not start")
+          addr = "VouM4sj67i6L2nLcaPmvH2asyBbVUrvidcX92Y3Qjn3sPBHduxikVfp8LpMJPEiwtuMvi6kTanXXmZWkca78LScg2dHnhwHCc"
+          gb = rpc("generateblocks", {"wallet_address": addr, "amount_of_blocks": 3})
+          assert gb["result"]["status"] == "OK", gb
+          cs = rpc("get_coinbase_tx_sum", {"height": 1, "count": 1})
+          em = cs["result"]["emission_amount"] / 1e12
+          print(f"C++ Block 1 real reward: {em:.6f} OBX")
+          assert 17.16 < em < 17.17, f"Unexpected C++ reward: {em}"
+          PYEOF
       - name: Upload compiled Linux binaries
         uses: actions/upload-artifact@v4
         with:

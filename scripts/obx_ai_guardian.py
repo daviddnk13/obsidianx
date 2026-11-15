@@ -95,6 +95,8 @@ def main():
                 log_alert("CHAIN_ROLLBACK", {"from_height": last_height, "to_height": h})
             last_height = h
             last_hash_at_height[h] = top_hash
+            if len(last_hash_at_height) > 100:
+                last_hash_at_height.pop(min(last_hash_at_height))
 
             subnets = [".".join(c.get("ip", "").split(".")[:3]) for c in conns if "." in c.get("ip", "") and not c.get("ip", "").startswith("127.")]
             subnet_counts = Counter(subnets)

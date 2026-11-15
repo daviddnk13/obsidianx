@@ -45,7 +45,7 @@ make -j$(nproc) daemon simplewallet
 
 ### Ejecutar el Nodo (`obsidianxd`) y la Billetera (`obsidianx-wallet-cli`)
 ```bash
-./bin/monerod --data-dir ~/obx-data --p2p-bind-port 38080 --rpc-bind-port 38081
+./bin/obsidianxd --data-dir ~/obx-data --p2p-bind-port 38080 --rpc-bind-port 38081
 ./bin/monero-wallet-cli --daemon-address 127.0.0.1:38081 --generate-new-wallet ~/mi_billetera_obx
 ```
 

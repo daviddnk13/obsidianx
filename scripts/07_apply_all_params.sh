@@ -202,7 +202,6 @@ PYEOF
 log "Verified: Monero seed nodes removed from net_node.inl"
 
 
-sed -i '/on_start_mining(/,/CHECK_CORE_READY();/ s/CHECK_CORE_READY();/\/\/ OBX allow P2P mining/' "$CORE_DIR/src/rpc/core_rpc_server.cpp"
 
 step "6b. Implement Zawy LWMA-1 Difficulty Algorithm (N=60) in difficulty.cpp"
 python3 - "$CORE_DIR/src/cryptonote_basic/difficulty.cpp" << 'PYEOF'
