@@ -220,7 +220,7 @@ txt = open(p, 'r', encoding='utf-8').read()
 lwma_fn = """difficulty_type next_difficulty(std::vector<uint64_t> timestamps, std::vector<difficulty_type> cumulative_difficulties, size_t target_seconds) {
     // ObsidianX: Zawy LWMA-1 (N=60) for small PoW networks
     const size_t N = 60;
-    if (timestamps.size() <= 1 || cumulative_difficulties.size() <= 1) return 100;
+    if (timestamps.size() <= 1 || cumulative_difficulties.size() <= 1) return 10;
     if (timestamps.size() > N + 1) {
       timestamps.erase(timestamps.begin(), timestamps.end() - (N + 1));
       cumulative_difficulties.erase(cumulative_difficulties.begin(), cumulative_difficulties.end() - (N + 1));
