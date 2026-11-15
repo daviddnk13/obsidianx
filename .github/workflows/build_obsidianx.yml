@@ -1,4 +1,4 @@
-name: Build ObsidianX C++ Core (Ubuntu 22.04)
+name: Build ObsidianX C++ Core
 
 on:
   push:
@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
 
 jobs:
-  build:
+  build-linux:
     runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v4
@@ -26,10 +26,48 @@ jobs:
           make -j$(nproc) daemon simplewallet
           mv bin/monerod bin/obsidianxd
           mv bin/monero-wallet-cli bin/obsidianx-wallet-cli
-      - name: Upload compiled binaries
+          sha256sum bin/obsidianxd bin/obsidianx-wallet-cli > bin/SHA256SUMS-linux.txt
+      - name: Upload compiled Linux binaries
         uses: actions/upload-artifact@v4
         with:
           name: obsidianx-linux-x86_64
           path: |
             ~/obsidianx/core-chain/build/release/bin/obsidianxd
             ~/obsidianx/core-chain/build/release/bin/obsidianx-wallet-cli
+            ~/obsidianx/core-chain/build/release/bin/SHA256SUMS-linux.txt
+
+  build-windows:
+    runs-on: windows-latest
+    continue-on-error: true
+    defaults:
+      run:
+        shell: msys2 {0}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: msys2/setup-msys2@v2
+        with:
+          msystem: MINGW64
+          update: true
+          install: >-
+            git python3 mingw-w64-x86_64-toolchain mingw-w64-x86_64-cmake
+            mingw-w64-x86_64-boost mingw-w64-x86_64-openssl
+            mingw-w64-x86_64-zeromq mingw-w64-x86_64-libsodium
+            mingw-w64-x86_64-unbound mingw-w64-x86_64-hidapi
+            mingw-w64-x86_64-protobuf
+      - name: Apply ObsidianX patches and compile Windows binaries
+        run: |
+          chmod +x scripts/07_apply_all_params.sh
+          ./scripts/07_apply_all_params.sh
+          cd ~/obsidianx/core-chain/build/release
+          make -j$(nproc) daemon simplewallet
+          mv bin/monerod.exe bin/obsidianxd.exe
+          mv bin/monero-wallet-cli.exe bin/obsidianx-wallet-cli.exe
+          sha256sum bin/obsidianxd.exe bin/obsidianx-wallet-cli.exe > bin/SHA256SUMS-win64.txt
+      - name: Upload compiled Windows binaries
+        uses: actions/upload-artifact@v4
+        with:
+          name: obsidianx-win64
+          path: |
+            ~/obsidianx/core-chain/build/release/bin/obsidianxd.exe
+            ~/obsidianx/core-chain/build/release/bin/obsidianx-wallet-cli.exe
+            ~/obsidianx/core-chain/build/release/bin/SHA256SUMS-win64.txt
