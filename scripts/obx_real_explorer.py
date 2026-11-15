@@ -153,6 +153,14 @@ class ReadOnlyExplorerHandler(http.server.BaseHTTPRequestHandler):
             peers_in = int(info.get("incoming_connections_count", 0))
             peers_out = int(info.get("outgoing_connections_count", 0))
             pool_sz = int(info.get("tx_pool_size", 0))
+            emitted_obx = 0.0
+            if height > 0:
+                try:
+                    csum = rpc_call("get_coinbase_tx_sum", {"height": 0, "count": height})
+                    emitted_obx = float(csum.get("emission_amount", 0)) / 1e12
+                except Exception:
+                    emitted_obx = 0.0
+            est_hashrate = round(diff / 120.0, 2) if diff > 0 else 0.0
             blocks = []
             for h in range(max(0, height - 15), height):
                 hdr = rpc_call("get_block_header_by_height", {"height": h}).get("block_header", {})
@@ -161,6 +169,7 @@ class ReadOnlyExplorerHandler(http.server.BaseHTTPRequestHandler):
             daemon_online = True
         except Exception:
             height, diff, peers_in, peers_out, pool_sz = 0, 0, 0, 0, 0
+            emitted_obx, est_hashrate = 0.0, 0.0
             blocks = []
             daemon_online = False
 
@@ -244,6 +253,8 @@ class ReadOnlyExplorerHandler(http.server.BaseHTTPRequestHandler):
     <div class="card"><div class="lbl">Dificultad PoW</div><div class="val">{diff}</div></div>
     <div class="card"><div class="lbl">Mempool</div><div class="val">{pool_sz} Txs</div></div>
     <div class="card"><div class="lbl">Pares P2P</div><div class="val">{peers_in} IN / {peers_out} OUT</div></div>
+    <div class="card"><div class="lbl">Hashrate Est.</div><div class="val">{est_hashrate} H/s</div></div>
+    <div class="card"><div class="lbl">Emision Verificada</div><div class="val">{emitted_obx:.4f} OBX</div></div>
     <div class="card"><div class="lbl">Tiempo Medio Bloque</div><div class="val">{gm.get('avg_block_time_s', 0)}s</div></div>
   </div>
   <div class="ai-bar">
@@ -260,6 +271,7 @@ class ReadOnlyExplorerHandler(http.server.BaseHTTPRequestHandler):
   </table>
   <div class="card" style="font-size:13px;line-height:1.6;">
     <div class="lbl" style="margin-bottom:6px;">Conectar un Nodo a ObsidianX Testnet</div>
+    <div><strong>Consenso Verificable:</strong> RandomX PoW • LWMA-1 (N=60) • Target 120s • 0% Premine • Cap 21M + Tail 0.6 OBX</div>
     <div><strong>Clearnet Seed:</strong> <span class="mono">92.5.87.63:38080</span></div>
     <div><strong>Tor Hidden Service:</strong> <span class="mono">{ONION_SEED}</span></div>
     <div><strong>Codigo Fuente &amp; Guia:</strong> <a href="https://github.com/daviddnk13/obsidianx" target="_blank">github.com/daviddnk13/obsidianx</a> • <a href="https://t.me/ObsidianX_OBX" target="_blank">Telegram @ObsidianX_OBX</a></div>
