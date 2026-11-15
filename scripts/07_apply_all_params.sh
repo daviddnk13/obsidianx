@@ -68,6 +68,15 @@ new_txt, n = re.subn(
 assert n == 1, "NETWORK_ID pattern did not match in cryptonote_config.h!"
 open(p, 'w', encoding='utf-8').write(new_txt)
 print(f"Verified: NETWORK_ID injected -> {{ {new_bytes} }}")
+
+gen_extra = hashlib.sha256(b'ObsidianX-Fair-Launch-Genesis-2026').hexdigest()
+gen_tx = "013c01ff0001ffffffffffff03029b2e4c0281c0b02e7c53291a94d1d0cbff8883f8024f5142ee494ffbbd0880712101" + gen_extra
+txt2 = open(p, 'r', encoding='utf-8').read()
+txt2, ng1 = re.subn(r'std::string const GENESIS_TX = "[^"]+";', f'std::string const GENESIS_TX = "{gen_tx}";', txt2, count=1)
+txt2, ng2 = re.subn(r'uint32_t const GENESIS_NONCE = \d+;', 'uint32_t const GENESIS_NONCE = 20261115;', txt2, count=1)
+assert ng1 == 1 and ng2 == 1, f"Genesis patterns not matched: ng1={ng1}, ng2={ng2}"
+open(p, 'w', encoding='utf-8').write(txt2)
+print("Verified: Custom GENESIS_TX & GENESIS_NONCE=20261115 injected!")
 PYEOF
 
 step "4. Fair-Launch Emission (0 Premine, 18M Base + 0.6 OBX Tail Emission, No uint64 Overflow)"
@@ -211,7 +220,7 @@ txt = open(p, 'r', encoding='utf-8').read()
 lwma_fn = """difficulty_type next_difficulty(std::vector<uint64_t> timestamps, std::vector<difficulty_type> cumulative_difficulties, size_t target_seconds) {
     // ObsidianX: Zawy LWMA-1 (N=60) for small PoW networks
     const size_t N = 60;
-    if (timestamps.size() <= 1 || cumulative_difficulties.size() <= 1) return 1;
+    if (timestamps.size() <= 1 || cumulative_difficulties.size() <= 1) return 100;
     if (timestamps.size() > N + 1) {
       timestamps.erase(timestamps.begin(), timestamps.end() - (N + 1));
       cumulative_difficulties.erase(cumulative_difficulties.begin(), cumulative_difficulties.end() - (N + 1));
