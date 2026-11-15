@@ -143,6 +143,41 @@ log "Verified: Monero seed nodes removed from net_node.inl"
 
 
 sed -i '/on_start_mining(/,/CHECK_CORE_READY();/ s/CHECK_CORE_READY();/\/\/ OBX allow P2P mining/' "$CORE_DIR/src/rpc/core_rpc_server.cpp"
+
+step "6b. Implement Zawy LWMA-1 Difficulty Algorithm (N=60) in difficulty.cpp"
+python3 - "$CORE_DIR/src/cryptonote_basic/difficulty.cpp" << 'PYEOF'
+import sys, re
+p = sys.argv[1]
+txt = open(p, 'r', encoding='utf-8').read()
+lwma_fn = """difficulty_type next_difficulty(std::vector<uint64_t> timestamps, std::vector<difficulty_type> cumulative_difficulties, size_t target_seconds) {
+    // ObsidianX: Zawy LWMA-1 (N=60) for small PoW networks
+    const size_t N = 60;
+    if (timestamps.size() <= 1 || cumulative_difficulties.size() <= 1) return 1;
+    if (timestamps.size() > N + 1) {
+      timestamps.erase(timestamps.begin(), timestamps.end() - (N + 1));
+      cumulative_difficulties.erase(cumulative_difficulties.begin(), cumulative_difficulties.end() - (N + 1));
+    }
+    const size_t L = timestamps.size() - 1;
+    uint64_t sum_weighted_solvetimes = 0;
+    boost::multiprecision::uint128_t sum_difficulties = 0;
+    for (size_t i = 1; i <= L; ++i) {
+      int64_t solvetime = static_cast<int64_t>(timestamps[i]) - static_cast<int64_t>(timestamps[i - 1]);
+      if (solvetime > static_cast<int64_t>(6 * target_seconds)) solvetime = 6 * target_seconds;
+      if (solvetime < 1) solvetime = 1;
+      sum_weighted_solvetimes += i * static_cast<uint64_t>(solvetime);
+      sum_difficulties += (cumulative_difficulties[i] - cumulative_difficulties[i - 1]);
+    }
+    if (sum_weighted_solvetimes == 0) sum_weighted_solvetimes = 1;
+    boost::multiprecision::uint128_t next_diff = (sum_difficulties * target_seconds * (L + 1)) / (2 * sum_weighted_solvetimes);
+    difficulty_type res = static_cast<difficulty_type>(next_diff);
+    return res < 1 ? 1 : res;
+  }"""
+pat = r'difficulty_type next_difficulty\(std::vector<uint64_t> timestamps, std::vector<difficulty_type> cumulative_difficulties, size_t target_seconds\) \{[\s\S]*?\n  \}'
+new_txt, n = re.subn(pat, lwma_fn, txt, count=1)
+assert n == 1, "next_difficulty function not found in difficulty.cpp!"
+open(p, 'w', encoding='utf-8').write(new_txt)
+print("Verified: Zawy LWMA-1 (N=60) injected into difficulty.cpp")
+PYEOF
 step "7. CMake Configure (Release + Static Internal Libs)"
 mkdir -p "$CORE_DIR/build/release"
 cd "$CORE_DIR/build/release"
