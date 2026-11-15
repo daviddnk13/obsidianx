@@ -138,7 +138,26 @@ open(p, 'w', encoding='utf-8').write(txt)
 print("Verified: Monero hardcoded checkpoints cleared")
 PYEOF
 
-sed -i '/m_seed_nodes_list.push_back/d' "$NET_NODE"
+python3 - "$NET_NODE" << 'PYEOF'
+import sys, re
+p = sys.argv[1]
+txt = open(p, 'r', encoding='utf-8').read()
+# 1. Reemplazar DNS seeds publicos de Monero por 92.5.87.63:38080
+txt, n1 = re.subn(
+    r'return get_dns_seed_nodes\(\);',
+    'return {"92.5.87.63:38080"};',
+    txt, count=1
+)
+# 2. Reemplazar seeds Tor .onion de Monero por el .onion oficial de ObsidianX
+txt, n2 = re.subn(
+    r'(case epee::net_utils::zone::tor:\s*if \(m_nettype == cryptonote::MAINNET\)\s*\{\s*return \{)[\s\S]*?(\};)',
+    r'\g<1>\n          "3txl2dzhuq424zrpp6bfwfgbgjcsqcironoladfpak43utmtqxrtylid.onion:38083"\n        \g<2>',
+    txt, count=1
+)
+assert n1 == 1 and n2 == 1, f"Seed patterns not matched: n1={n1}, n2={n2}"
+open(p, 'w', encoding='utf-8').write(txt)
+print("Verified: Native Clearnet (92.5.87.63:38080) & Tor (.onion:38083) seeds injected!")
+PYEOF
 log "Verified: Monero seed nodes removed from net_node.inl"
 
 
