@@ -273,7 +273,8 @@ class ReadOnlyExplorerHandler(http.server.BaseHTTPRequestHandler):
     <div class="lbl" style="margin-bottom:6px;">Conectar un Nodo a ObsidianX Testnet</div>
     <div><strong>Consenso Verificable:</strong> RandomX PoW • LWMA-1 (N=60) • Target 120s • 0% Premine • Cap 21M + Tail 0.6 OBX</div>
     <div><strong>Clearnet Seed:</strong> <span class="mono">92.5.87.63:38080</span></div>
-    <div><strong>Tor Hidden Service:</strong> <span class="mono">{ONION_SEED}</span></div>
+    <div><strong>Tor Hidden Service (P2P):</strong> <span class="mono">{ONION_SEED}</span></div>
+    <div><strong>Nodo Remoto Billetera (Tor Restricted RPC):</strong> <span class="mono">3txl2dzhuq424zrpp6bfwfgbgjcsqcironoladfpak43utmtqxrtylid.onion:38081</span></div>
     <div><strong>Codigo Fuente &amp; Guia:</strong> <a href="https://github.com/daviddnk13/obsidianx" target="_blank">github.com/daviddnk13/obsidianx</a> • <a href="https://t.me/ObsidianX_OBX" target="_blank">Telegram @ObsidianX_OBX</a></div>
   </div>
 </div>
