@@ -27,7 +27,7 @@ jobs:
       - name: Compile daemon, simplewallet, and wallet-rpc
         run: |
           cd ~/obsidianx/core-chain/build/release
-          make -j$(nproc) daemon simplewallet wallet_rpc_server
+          cmake --build . --target daemon simplewallet wallet_rpc_server -j$(nproc)
           mv bin/monerod bin/obsidianxd
           mv bin/monero-wallet-cli bin/obsidianx-wallet-cli
           mv bin/monero-wallet-rpc bin/obsidianx-wallet-rpc
@@ -66,7 +66,7 @@ jobs:
           chmod +x scripts/07_apply_all_params.sh
           ./scripts/07_apply_all_params.sh
           cd ~/obsidianx/core-chain/build/release
-          make -j$(nproc) daemon simplewallet wallet_rpc_server
+          cmake --build . --target daemon simplewallet wallet_rpc_server -j$(nproc)
           mv bin/monerod.exe bin/obsidianxd.exe
           mv bin/monero-wallet-cli.exe bin/obsidianx-wallet-cli.exe
           mv bin/monero-wallet-rpc.exe bin/obsidianx-wallet-rpc.exe
