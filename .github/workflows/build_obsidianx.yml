@@ -20,13 +20,14 @@ jobs:
         run: |
           chmod +x scripts/07_apply_all_params.sh
           ./scripts/07_apply_all_params.sh
-      - name: Compile daemon and simplewallet
+      - name: Compile daemon, simplewallet, and wallet-rpc
         run: |
           cd ~/obsidianx/core-chain/build/release
-          make -j$(nproc) daemon simplewallet
+          make -j$(nproc) daemon simplewallet wallet_rpc_server
           mv bin/monerod bin/obsidianxd
           mv bin/monero-wallet-cli bin/obsidianx-wallet-cli
-          sha256sum bin/obsidianxd bin/obsidianx-wallet-cli > bin/SHA256SUMS-linux.txt
+          mv bin/monero-wallet-rpc bin/obsidianx-wallet-rpc
+          sha256sum bin/obsidianxd bin/obsidianx-wallet-cli bin/obsidianx-wallet-rpc > bin/SHA256SUMS-linux.txt
       - name: Upload compiled Linux binaries
         uses: actions/upload-artifact@v4
         with:
@@ -34,6 +35,7 @@ jobs:
           path: |
             ~/obsidianx/core-chain/build/release/bin/obsidianxd
             ~/obsidianx/core-chain/build/release/bin/obsidianx-wallet-cli
+            ~/obsidianx/core-chain/build/release/bin/obsidianx-wallet-rpc
             ~/obsidianx/core-chain/build/release/bin/SHA256SUMS-linux.txt
 
   build-windows:
@@ -59,10 +61,11 @@ jobs:
           chmod +x scripts/07_apply_all_params.sh
           ./scripts/07_apply_all_params.sh
           cd ~/obsidianx/core-chain/build/release
-          make -j$(nproc) daemon simplewallet
+          make -j$(nproc) daemon simplewallet wallet_rpc_server
           mv bin/monerod.exe bin/obsidianxd.exe
           mv bin/monero-wallet-cli.exe bin/obsidianx-wallet-cli.exe
-          sha256sum bin/obsidianxd.exe bin/obsidianx-wallet-cli.exe > bin/SHA256SUMS-win64.txt
+          mv bin/monero-wallet-rpc.exe bin/obsidianx-wallet-rpc.exe
+          sha256sum bin/obsidianxd.exe bin/obsidianx-wallet-cli.exe bin/obsidianx-wallet-rpc.exe > bin/SHA256SUMS-win64.txt
       - name: Upload compiled Windows binaries
         uses: actions/upload-artifact@v4
         with:
@@ -70,4 +73,5 @@ jobs:
           path: |
             ~/obsidianx/core-chain/build/release/bin/obsidianxd.exe
             ~/obsidianx/core-chain/build/release/bin/obsidianx-wallet-cli.exe
+            ~/obsidianx/core-chain/build/release/bin/obsidianx-wallet-rpc.exe
             ~/obsidianx/core-chain/build/release/bin/SHA256SUMS-win64.txt
