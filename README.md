@@ -55,7 +55,7 @@ El script `scripts/obx_real_explorer.py` consulta únicamente `get_info` y `get_
 ---
 ## Testnet Publica en Vivo
 - **Nodo Semilla (Seed Node)**: 92.5.87.63:38080
-- **Explorador RPC Real**: http://92.5.87.63:8080
+- **Explorador RPC Real**: https://obsidianx-obx.duckdns.org
 - **Conectar nodo**: ./obsidianxd --p2p-bind-port 38080 --rpc-bind-port 38081 --add-priority-node 92.5.87.63:38080
 
 - **Nodo Oculto Tor (.onion)**: 3txl2dzhuq424zrpp6bfwfgbgjcsqcironoladfpak43utmtqxrtylid.onion:38083
