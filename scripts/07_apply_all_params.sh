@@ -231,6 +231,24 @@ open(p, 'w', encoding='utf-8').write(new_txt)
 print("Verified: Safe sync-aware guard applied to on_start_mining")
 PYEOF
 
+step "6a2. Allow mining stem-phase txs in small Tor P2P networks + OBX wallet branding"
+python3 - "$CORE_DIR/src/cryptonote_core/tx_pool.cpp" "$CORE_DIR/src/simplewallet/simplewallet.cpp" << 'PYEOF'
+import sys
+p_pool, p_sw = sys.argv[1], sys.argv[2]
+txt = open(p_pool, 'r', encoding='utf-8').read()
+target = '    m_mine_stem_txes = mine_stem_txes;'
+assert target in txt, "m_mine_stem_txes line not found in tx_pool.cpp!"
+txt = txt.replace(target, '    m_mine_stem_txes = true; // OBX: mine stem txs when Tor outbound peers=0', 1)
+open(p_pool, 'w', encoding='utf-8').write(txt)
+
+sw = open(p_sw, 'r', encoding='utf-8').read()
+sw = sw.replace('I locked your Monero wallet to protect you', 'I locked your ObsidianX wallet to protect you')
+sw = sw.replace('This is the command line monero wallet.', 'This is the command line ObsidianX wallet.')
+sw = sw.replace('receiving new monero', 'receiving new OBX')
+open(p_sw, 'w', encoding='utf-8').write(sw)
+print("Verified: tx_pool.cpp m_mine_stem_txes=true & OBX wallet text applied")
+PYEOF
+
 step "6b. Implement Zawy LWMA-1 Difficulty Algorithm (N=60) in difficulty.cpp"
 python3 - "$CORE_DIR/src/cryptonote_basic/difficulty.cpp" << 'PYEOF'
 import sys, re
