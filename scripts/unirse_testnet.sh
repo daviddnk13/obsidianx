@@ -7,7 +7,7 @@ done
 
 OBX_DIR="${HOME}/obsidianx-testnet"
 OBX_NET_VER="v0.2.4-testnet"
-BASE_URL="${OBX_RELEASE_BASE:-https://github.com/daviddnk13/obsidianx/releases/latest/download}"
+BASE_URL="${OBX_RELEASE_BASE:-https://github.com/daviddnk13/obsidianx/releases/download/${OBX_NET_VER}}"
 SEED_CLEARNET="92.5.87.63:38080"
 
 mkdir -p "${OBX_DIR}/bin" "${OBX_DIR}/data"
@@ -51,6 +51,7 @@ if ! docker ps --format '{{.Names}}' | grep -q '^obsidianx-testnet-node$'; then
       --p2p-bind-ip 0.0.0.0 --p2p-bind-port 38080 \
       --rpc-bind-ip 127.0.0.1 --rpc-bind-port 38081 \
       --add-priority-node "${SEED_CLEARNET}" \
+      --fast-block-sync 0 \
       --disable-dns-checkpoints \
       --check-updates disabled \
       --non-interactive

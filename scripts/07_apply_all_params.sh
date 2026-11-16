@@ -252,13 +252,16 @@ open(p_sw, 'w', encoding='utf-8').write(sw)
 print("Verified: tx_pool.cpp m_mine_stem_txes=true & OBX wallet text applied")
 PYEOF
 
-step "6b. Implement Zawy LWMA-1 Difficulty Algorithm (N=60) in difficulty.cpp"
-python3 - "$CORE_DIR/src/cryptonote_basic/difficulty.cpp" << 'PYEOF'
-import sys, re
-p = sys.argv[1]
-txt = open(p, 'r', encoding='utf-8').read()
-lwma_fn = """difficulty_type next_difficulty(std::vector<uint64_t> timestamps, std::vector<difficulty_type> cumulative_difficulties, size_t target_seconds) {
-    // ObsidianX: Zawy LWMA-1 (N=60) for small PoW networks
+step "6b. Implement Zawy LWMA-1 Difficulty Algorithm (N=60) via shared obx_lwma.h"
+cat > "$CORE_DIR/src/obx_lwma.h" << 'EOF'
+#pragma once
+#include <cstdint>
+#include <vector>
+#include <boost/multiprecision/cpp_int.hpp>
+
+namespace obx {
+  template <typename DiffType>
+  inline DiffType lwma_next_difficulty(std::vector<uint64_t> timestamps, std::vector<DiffType> cumulative_difficulties, size_t target_seconds) {
     const size_t N = 60;
     if (timestamps.size() <= 1 || cumulative_difficulties.size() <= 1) return 10;
     if (timestamps.size() > N + 1) {
@@ -277,8 +280,20 @@ lwma_fn = """difficulty_type next_difficulty(std::vector<uint64_t> timestamps, s
     }
     if (sum_weighted_solvetimes == 0) sum_weighted_solvetimes = 1;
     boost::multiprecision::uint128_t next_diff = (sum_difficulties * target_seconds * (L + 1)) / (2 * sum_weighted_solvetimes);
-    difficulty_type res = static_cast<difficulty_type>(next_diff);
+    DiffType res = static_cast<DiffType>(next_diff);
     return res < 1 ? 1 : res;
+  }
+}
+EOF
+if ! grep -q "obx_lwma.h" "$CORE_DIR/src/cryptonote_basic/difficulty.cpp"; then
+    sed -i '1i #include "obx_lwma.h"' "$CORE_DIR/src/cryptonote_basic/difficulty.cpp"
+fi
+python3 - "$CORE_DIR/src/cryptonote_basic/difficulty.cpp" << 'PYEOF'
+import sys, re
+p = sys.argv[1]
+txt = open(p, 'r', encoding='utf-8').read()
+lwma_fn = """difficulty_type next_difficulty(std::vector<uint64_t> timestamps, std::vector<difficulty_type> cumulative_difficulties, size_t target_seconds) {
+    return obx::lwma_next_difficulty<difficulty_type>(std::move(timestamps), std::move(cumulative_difficulties), target_seconds);
   }"""
 pat = r'difficulty_type next_difficulty\(std::vector<uint64_t> timestamps, std::vector<difficulty_type> cumulative_difficulties, size_t target_seconds\) \{[\s\S]*?\n  \}'
 new_txt, n = re.subn(pat, lwma_fn, txt, count=1)

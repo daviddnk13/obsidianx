@@ -43,7 +43,7 @@
 
 ### Ejecutar Nodo (`obsidianxd`) y Billetera (`obsidianx-wallet-cli`)
 
-    ./bin/obsidianxd --data-dir ~/obx-data --p2p-bind-port 38080 --rpc-bind-port 38081 --disable-dns-checkpoints --check-updates disabled --add-priority-node 92.5.87.63:38080
+    ./bin/obsidianxd --data-dir ~/obx-data --p2p-bind-port 38080 --rpc-bind-port 38081 --fast-block-sync 0 --disable-dns-checkpoints --check-updates disabled --add-priority-node 92.5.87.63:38080
     ./bin/obsidianx-wallet-cli --daemon-address 127.0.0.1:38081 --generate-new-wallet ~/mi_billetera_obx
 
 ### Conectar Billetera por Tor (Nodo Remoto Restricted RPC)
@@ -57,3 +57,5 @@
 * **Tor Wallet Remote Node (`--restricted-rpc`):** `3txl2dzhuq424zrpp6bfwfgbgjcsqcironoladfpak43utmtqxrtylid.onion:38081`
 * **Guia Completa:** [`docs/TESTNET_GUIDE.md`](docs/TESTNET_GUIDE.md)
 * **Comunidad Telegram:** https://t.me/ObsidianX_OBX
+
+> **Nota de privacidad en Testnet:** Para evitar que transacciones locales queden retenidas en fase *stem* cuando aun no existen otros peers .onion externos, la Testnet activa temporalmente m_mine_stem_txes = true (incluyendo elay_method::local). En Mainnet se desactivara para preservar Dandelion++ completo.
