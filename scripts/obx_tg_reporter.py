@@ -58,7 +58,7 @@ def main():
     while True:
         try:
             # 1) Responder comandos /estado o /unirse en el grupo propio
-            updates = tg_call("getUpdates", {"offset": offset, "timeout": 10}).get("result", [])
+            updates = tg_call("getUpdates", {"offset": offset, "timeout": 5}).get("result", [])
             for u in updates:
                 offset = u["update_id"] + 1
                 msg = u.get("message", {})
@@ -82,6 +82,10 @@ def main():
                         "disable_web_page_preview": True,
                     })
 
+        except Exception as e:
+            print(f"[OBX-TG-WARN] getUpdates: {e}", flush=True)
+
+        try:
             # 2) Publicacion automatica en canal/grupo propio cada 100 bloques o 12h
             info = get_info()
             if info.get("status") == "OK":
