@@ -1,9 +1,19 @@
 obsidianx-obx.duckdns.org {
+    header {
+        X-Content-Type-Options "nosniff"
+        X-Frame-Options "DENY"
+        Referrer-Policy "no-referrer"
+    }
     handle /google1c396229b5b92f7b.html {
         respond "google-site-verification: google1c396229b5b92f7b.html" 200
     }
     handle /robots.txt {
-        respond "User-agent: *\nAllow: /\nSitemap: https://obsidianx-obx.duckdns.org/sitemap.xml\n" 200
+        header Content-Type text/plain
+        respond <<TXT 200
+User-agent: *
+Allow: /
+Sitemap: https://obsidianx-obx.duckdns.org/sitemap.xml
+TXT
     }
     handle /sitemap.xml {
         header Content-Type application/xml

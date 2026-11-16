@@ -58,4 +58,4 @@
 * **Guia Completa:** [`docs/TESTNET_GUIDE.md`](docs/TESTNET_GUIDE.md)
 * **Comunidad Telegram:** https://t.me/ObsidianX_OBX
 
-> **Nota de privacidad en Testnet:** Para evitar que transacciones locales queden retenidas en fase *stem* cuando aun no existen otros peers .onion externos, la Testnet activa temporalmente m_mine_stem_txes = true (incluyendo elay_method::local). En Mainnet se desactivara para preservar Dandelion++ completo.
+> **Nota de privacidad en Testnet:** Para evitar que transacciones locales queden retenidas en fase *stem* cuando aun no existen otros peers .onion externos, la Testnet activa temporalmente m_mine_stem_txes = true (incluyendo elay_method::local). En Mainnet se desactivara para preservar Dandelion++ completo.

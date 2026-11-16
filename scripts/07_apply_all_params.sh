@@ -231,18 +231,33 @@ open(p, 'w', encoding='utf-8').write(new_txt)
 print("Verified: Safe sync-aware guard applied to on_start_mining")
 PYEOF
 
-step "6a2. Allow mining stem-phase txs in small Tor P2P networks + OBX wallet branding"
+step "6a1. Disable Monero embedded fast-block-sync by default (cryptonote_core.cpp)"
+python3 - "$CORE_DIR/src/cryptonote_core/cryptonote_core.cpp" << 'PYEOF'
+import sys
+p = sys.argv[1]
+txt = open(p, 'r', encoding='utf-8').read()
+target = '{"fast-block-sync", "Sync up most of the way by using embedded, known block hashes.", true}'
+rep = '{"fast-block-sync", "Sync up most of the way by using embedded, known block hashes.", false}'
+assert target in txt, "arg_fast_block_sync not found in cryptonote_core.cpp!"
+txt = txt.replace(target, rep, 1)
+open(p, 'w', encoding='utf-8').write(txt)
+print("Verified: arg_fast_block_sync defaults to false")
+PYEOF
+
+step "6a2. Allow mining stem/local txs (Testnet only: OBX_NETWORK=testnet) + OBX wallet branding"
 python3 - "$CORE_DIR/src/cryptonote_core/tx_pool.cpp" "$CORE_DIR/src/simplewallet/simplewallet.cpp" << 'PYEOF'
 import sys
 p_pool, p_sw = sys.argv[1], sys.argv[2]
-txt = open(p_pool, 'r', encoding='utf-8').read()
-target = '    m_mine_stem_txes = mine_stem_txes;'
-assert target in txt, "m_mine_stem_txes line not found in tx_pool.cpp!"
-txt = txt.replace(target, '    m_mine_stem_txes = true; // OBX: mine stem/local txs when Tor outbound peers=0', 1)
-target_cond = 'meta.get_relay_method() == relay_method::stem'
-assert target_cond in txt, "relay_method check not found in tx_pool.cpp!"
-txt = txt.replace(target_cond, '(meta.get_relay_method() == relay_method::stem || meta.get_relay_method() == relay_method::local)', 1)
-open(p_pool, 'w', encoding='utf-8').write(txt)
+import os
+if os.environ.get("OBX_NETWORK", "testnet") == "testnet":
+    txt = open(p_pool, 'r', encoding='utf-8').read()
+    target = '    m_mine_stem_txes = mine_stem_txes;'
+    assert target in txt, "m_mine_stem_txes line not found in tx_pool.cpp!"
+    txt = txt.replace(target, '    m_mine_stem_txes = true; // OBX Testnet only', 1)
+    target_cond = 'meta.get_relay_method() == relay_method::stem'
+    assert target_cond in txt, "relay_method check not found in tx_pool.cpp!"
+    txt = txt.replace(target_cond, '(meta.get_relay_method() == relay_method::stem || meta.get_relay_method() == relay_method::local)', 1)
+    open(p_pool, 'w', encoding='utf-8').write(txt)
 
 sw = open(p_sw, 'r', encoding='utf-8').read()
 sw = sw.replace('I locked your Monero wallet to protect you', 'I locked your ObsidianX wallet to protect you')

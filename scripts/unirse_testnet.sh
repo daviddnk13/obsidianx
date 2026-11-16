@@ -6,7 +6,7 @@ for cmd in curl unzip docker; do
 done
 
 OBX_DIR="${HOME}/obsidianx-testnet"
-OBX_NET_VER="v0.2.4-testnet"
+OBX_NET_VER="v0.2.5-testnet"
 BASE_URL="${OBX_RELEASE_BASE:-https://github.com/daviddnk13/obsidianx/releases/download/${OBX_NET_VER}}"
 SEED_CLEARNET="92.5.87.63:38080"
 
