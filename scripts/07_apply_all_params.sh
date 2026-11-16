@@ -212,6 +212,19 @@ log "Verified: Monero seed nodes removed from net_node.inl"
 
 
 
+step "6a. Safe Genesis/Sync Guard for on_start_mining (blocks mining while behind peers, allows genesis network)"
+python3 - "$CORE_DIR/src/rpc/core_rpc_server.cpp" << 'PYEOF'
+import sys, re
+p = sys.argv[1]
+txt = open(p, 'r', encoding='utf-8').read()
+pat = r'(bool core_rpc_server::on_start_mining\([^\)]*\)\s*\{\s*)CHECK_CORE_READY\(\);'
+rep = r'\g<1>if (m_core.get_cryptonote_protocol().is_synchronized() == false && m_core.get_target_blockchain_height() > m_core.get_current_blockchain_height()) { res.status = CORE_RPC_STATUS_BUSY; return true; }'
+new_txt, n = re.subn(pat, rep, txt, count=1)
+assert n == 1, "CHECK_CORE_READY in on_start_mining not found!"
+open(p, 'w', encoding='utf-8').write(new_txt)
+print("Verified: Safe sync-aware guard applied to on_start_mining")
+PYEOF
+
 step "6b. Implement Zawy LWMA-1 Difficulty Algorithm (N=60) in difficulty.cpp"
 python3 - "$CORE_DIR/src/cryptonote_basic/difficulty.cpp" << 'PYEOF'
 import sys, re
