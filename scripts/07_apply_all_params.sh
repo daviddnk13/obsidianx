@@ -233,15 +233,14 @@ PYEOF
 
 step "6a1. Disable Monero embedded fast-block-sync by default (cryptonote_core.cpp)"
 python3 - "$CORE_DIR/src/cryptonote_core/cryptonote_core.cpp" << 'PYEOF'
-import sys
+import re, sys
 p = sys.argv[1]
 txt = open(p, 'r', encoding='utf-8').read()
-target = '{"fast-block-sync", "Sync up most of the way by using embedded, known block hashes.", true}'
-rep = '{"fast-block-sync", "Sync up most of the way by using embedded, known block hashes.", false}'
-assert target in txt, "arg_fast_block_sync not found in cryptonote_core.cpp!"
-txt = txt.replace(target, rep, 1)
-open(p, 'w', encoding='utf-8').write(txt)
-print("Verified: arg_fast_block_sync defaults to false")
+pat = r'(arg_fast_block_sync\s*=\s*\{\s*"fast-block-sync"\s*,\s*"[^"]*"\s*,\s*)1(\s*\};)'
+new_txt, n = re.subn(pat, r'\g<1>0\g<2>', txt, count=1)
+assert n == 1, "arg_fast_block_sync not found in cryptonote_core.cpp!"
+open(p, 'w', encoding='utf-8').write(new_txt)
+print("Verified: arg_fast_block_sync defaults to 0 (false)")
 PYEOF
 
 step "6a2. Allow mining stem/local txs (Testnet only: OBX_NETWORK=testnet) + OBX wallet branding"
