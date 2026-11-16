@@ -24,22 +24,87 @@ jobs:
         run: |
           chmod +x scripts/07_apply_all_params.sh
           ./scripts/07_apply_all_params.sh
-      - name: Compile daemon, simplewallet, and wallet-rpc
+      - name: Unit Test LWMA-1 (synthetic hashrate x10, /10, manipulated timestamps)
+        run: |
+          cat > /tmp/test_lwma.cpp << 'CPPEOF'
+          #include <cassert>
+          #include <cstdint>
+          #include <iostream>
+          #include <vector>
+          #include <boost/multiprecision/cpp_int.hpp>
+          typedef uint64_t difficulty_type;
+          difficulty_type next_difficulty(std::vector<uint64_t> timestamps, std::vector<difficulty_type> cumulative_difficulties, size_t target_seconds) {
+            const size_t N = 60;
+            if (timestamps.size() <= 1 || cumulative_difficulties.size() <= 1) return 10;
+            if (timestamps.size() > N + 1) {
+              timestamps.erase(timestamps.begin(), timestamps.end() - (N + 1));
+              cumulative_difficulties.erase(cumulative_difficulties.begin(), cumulative_difficulties.end() - (N + 1));
+            }
+            const size_t L = timestamps.size() - 1;
+            uint64_t sum_weighted_solvetimes = 0;
+            boost::multiprecision::uint128_t sum_difficulties = 0;
+            for (size_t i = 1; i <= L; ++i) {
+              int64_t solvetime = static_cast<int64_t>(timestamps[i]) - static_cast<int64_t>(timestamps[i - 1]);
+              if (solvetime > static_cast<int64_t>(6 * target_seconds)) solvetime = 6 * target_seconds;
+              if (solvetime < 1) solvetime = 1;
+              sum_weighted_solvetimes += i * static_cast<uint64_t>(solvetime);
+              sum_difficulties += (cumulative_difficulties[i] - cumulative_difficulties[i - 1]);
+            }
+            if (sum_weighted_solvetimes == 0) sum_weighted_solvetimes = 1;
+            boost::multiprecision::uint128_t next_diff = (sum_difficulties * target_seconds * (L + 1)) / (2 * sum_weighted_solvetimes);
+            difficulty_type res = static_cast<difficulty_type>(next_diff);
+            return res < 1 ? 1 : res;
+          }
+          int main() {
+            assert(next_difficulty({1000}, {10}, 120) == 10);
+            std::vector<uint64_t> ts; std::vector<difficulty_type> cd;
+            uint64_t t = 100000; difficulty_type c = 0;
+            for (int i = 0; i <= 60; ++i) { ts.push_back(t); c += 1000; cd.push_back(c); t += 120; }
+            auto d_steady = next_difficulty(ts, cd, 120);
+            assert(d_steady >= 990 && d_steady <= 1010);
+            // Hashrate x10 (12s blocks)
+            ts.clear(); cd.clear(); t = 100000; c = 0;
+            for (int i = 0; i <= 60; ++i) { ts.push_back(t); c += 1000; cd.push_back(c); t += 12; }
+            assert(next_difficulty(ts, cd, 120) > d_steady * 5);
+            // Hashrate /10 (1200s blocks, clamped at 6*120=720s)
+            ts.clear(); cd.clear(); t = 100000; c = 0;
+            for (int i = 0; i <= 60; ++i) { ts.push_back(t); c += 1000; cd.push_back(c); t += 1200; }
+            assert(next_difficulty(ts, cd, 120) < d_steady / 4);
+            // Manipulated negative timestamps
+            ts = {1000, 900, 800, 700}; cd = {100, 200, 300, 400};
+            assert(next_difficulty(ts, cd, 120) >= 1);
+            std::cout << "LWMA-1 Unit Test OK (steady=" << d_steady << ")\n";
+            return 0;
+          }
+          CPPEOF
+          g++ -O2 -std=c++17 /tmp/test_lwma.cpp -o /tmp/test_lwma && /tmp/test_lwma
+      - name: Compile daemon, simplewallet, and wallet-rpc into ./dist
         run: |
           cd ~/obsidianx/core-chain/build/release
           make -j$(nproc) daemon simplewallet wallet_rpc_server
-          mv bin/monerod bin/obsidianxd
-          mv bin/monero-wallet-cli bin/obsidianx-wallet-cli
-          mv bin/monero-wallet-rpc bin/obsidianx-wallet-rpc
-          ldd bin/obsidianxd
-          cp "$GITHUB_WORKSPACE/LICENSE" bin/LICENSE
-          sha256sum bin/obsidianxd bin/obsidianx-wallet-cli bin/obsidianx-wallet-rpc bin/LICENSE > bin/SHA256SUMS-linux.txt
-          zip -j bin/obsidianx-linux-x86_64.zip bin/obsidianxd bin/obsidianx-wallet-cli bin/obsidianx-wallet-rpc bin/LICENSE bin/SHA256SUMS-linux.txt
-      - name: Smoke Test C++ Core (regtest + real coinbase emission)
+          mkdir -p "$GITHUB_WORKSPACE/dist"
+          mv bin/monerod "$GITHUB_WORKSPACE/dist/obsidianxd"
+          mv bin/monero-wallet-cli "$GITHUB_WORKSPACE/dist/obsidianx-wallet-cli"
+          mv bin/monero-wallet-rpc "$GITHUB_WORKSPACE/dist/obsidianx-wallet-rpc"
+          cp "$GITHUB_WORKSPACE/LICENSE" "$GITHUB_WORKSPACE/dist/LICENSE"
+          cd "$GITHUB_WORKSPACE/dist"
+          sha256sum obsidianxd obsidianx-wallet-cli obsidianx-wallet-rpc LICENSE > SHA256SUMS-linux.txt
+          zip -j obsidianx-linux-x86_64.zip obsidianxd obsidianx-wallet-cli obsidianx-wallet-rpc LICENSE SHA256SUMS-linux.txt
+      - name: Verify runtime container & C++ regtest emission + genesis
         run: |
-          BIN="$HOME/obsidianx/core-chain/build/release/bin/obsidianxd"
+          docker build -t obsidianx-runtime:22.04 - << 'DOCKEREOF'
+          FROM ubuntu:22.04
+          ENV DEBIAN_FRONTEND=noninteractive
+          RUN apt-get update && apt-get install -y --no-install-recommends \
+              ca-certificates libboost-program-options1.74.0 libboost-filesystem1.74.0 \
+              libboost-thread1.74.0 libboost-serialization1.74.0 libboost-chrono1.74.0 \
+              libboost-regex1.74.0 libssl3 libzmq5 libunbound8 libsodium23 \
+              libreadline8 libldns3 libexpat1 libunwind8 liblzma5 \
+              && rm -rf /var/lib/apt/lists/*
+          DOCKEREOF
+          docker run --rm -v "$GITHUB_WORKSPACE/dist:/usr/local/bin:ro" obsidianx-runtime:22.04 /usr/local/bin/obsidianxd --version
           mkdir -p /tmp/obx_regtest
-          "$BIN" --regtest --offline --fixed-difficulty 1 --data-dir /tmp/obx_regtest \
+          "$GITHUB_WORKSPACE/dist/obsidianxd" --regtest --offline --fixed-difficulty 1 --data-dir /tmp/obx_regtest \
             --p2p-bind-port 39080 --rpc-bind-ip 127.0.0.1 --rpc-bind-port 39081 \
             --no-zmq --disable-dns-checkpoints --check-updates disabled --non-interactive \
             >/tmp/obx_regtest/daemon.log 2>&1 &
@@ -62,6 +127,8 @@ jobs:
               time.sleep(1)
           else:
               raise RuntimeError("obsidianxd regtest did not start")
+          gen = rpc("get_block_header_by_height", {"height": 0})["result"]["block_header"]["hash"]
+          print(f"Genesis Hash (regtest): {gen}")
           addr = "VouM4sj67i6L2nLcaPmvH2asyBbVUrvidcX92Y3Qjn3sPBHduxikVfp8LpMJPEiwtuMvi6kTanXXmZWkca78LScg2dHnhwHCc"
           gb = rpc("generateblocks", {"wallet_address": addr, "amount_of_blocks": 3})
           assert gb["result"]["status"] == "OK", gb
@@ -74,12 +141,13 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: obsidianx-linux-x86_64
+          if-no-files-found: error
           path: |
-            ~/obsidianx/core-chain/build/release/bin/obsidianxd
-            ~/obsidianx/core-chain/build/release/bin/obsidianx-wallet-cli
-            ~/obsidianx/core-chain/build/release/bin/obsidianx-wallet-rpc
-            ~/obsidianx/core-chain/build/release/bin/SHA256SUMS-linux.txt
-            ~/obsidianx/core-chain/build/release/bin/obsidianx-linux-x86_64.zip
+            dist/obsidianxd
+            dist/obsidianx-wallet-cli
+            dist/obsidianx-wallet-rpc
+            dist/SHA256SUMS-linux.txt
+            dist/obsidianx-linux-x86_64.zip
 
   publish-release:
     if: startsWith(github.ref, 'refs/tags/v')

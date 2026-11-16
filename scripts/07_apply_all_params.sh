@@ -69,8 +69,8 @@ assert n == 1, "NETWORK_ID pattern did not match in cryptonote_config.h!"
 open(p, 'w', encoding='utf-8').write(new_txt)
 print(f"Verified: NETWORK_ID injected -> {{ {new_bytes} }}")
 
-gen_extra = hashlib.sha256(b'ObsidianX-Fair-Launch-Genesis-2026').hexdigest()
-gen_tx = "013c01ff0001ffffffffffff03029b2e4c0281c0b02e7c53291a94d1d0cbff8883f8024f5142ee494ffbbd0880712101" + gen_extra
+# Valid Ed25519 tx_pub_key + tx_extra_nonce ("OBX2026!") -> 43 bytes (0x2b)
+gen_tx = "013c01ff0001ffffffffffff03029b2e4c0281c0b02e7c53291a94d1d0cbff8883f8024f5142ee494ffbbd0880712b017767aafcde9be00dcfd098715ebcf7f410daebc582fda69d24a28e9d0bc890d102084f42583230323621"
 txt2 = open(p, 'r', encoding='utf-8').read()
 txt2, ng1 = re.subn(r'std::string const GENESIS_TX = "[^"]+";', f'std::string const GENESIS_TX = "{gen_tx}";', txt2, count=1)
 txt2, ng2 = re.subn(r'uint32_t const GENESIS_NONCE = \d+;', 'uint32_t const GENESIS_NONCE = 20261115;', txt2, count=1)
