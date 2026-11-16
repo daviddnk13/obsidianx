@@ -1,0 +1,15 @@
+obsidianx-obx.duckdns.org {
+    handle /google1c396229b5b92f7b.html {
+        respond "google-site-verification: google1c396229b5b92f7b.html" 200
+    }
+    handle /robots.txt {
+        respond "User-agent: *\nAllow: /\nSitemap: https://obsidianx-obx.duckdns.org/sitemap.xml\n" 200
+    }
+    handle /sitemap.xml {
+        header Content-Type application/xml
+        respond "<?xml version=\"1.0\" encoding=\"UTF-8\"?><urlset xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\"><url><loc>https://obsidianx-obx.duckdns.org/</loc><priority>1.0</priority></url></urlset>" 200
+    }
+    handle {
+        reverse_proxy 127.0.0.1:8080
+    }
+}

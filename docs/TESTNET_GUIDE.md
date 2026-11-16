@@ -32,3 +32,9 @@ Always verify downloaded archives against the published `SHA256SUMS` file in Git
 
 ---
 Community & Support: https://t.me/ObsidianX_OBX
+
+## 5. Windows Users (via WSL2 + Docker)
+1. Install WSL2 Ubuntu (`wsl --install`) and Docker Desktop with WSL2 backend enabled.
+2. Inside the Ubuntu WSL2 terminal, run the 1-command Linux setup:
+
+    curl -sSL https://raw.githubusercontent.com/daviddnk13/obsidianx/main/scripts/unirse_testnet.sh | bash

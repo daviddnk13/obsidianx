@@ -1,0 +1,14 @@
+[Unit]
+Description=ObsidianX Real C++ Read-Only Explorer
+After=network.target docker.service
+
+[Service]
+Type=simple
+User=ubuntu
+WorkingDirectory=/home/ubuntu/obsidianx-repo
+ExecStart=/usr/bin/python3 /home/ubuntu/obsidianx-repo/scripts/obx_real_explorer.py
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

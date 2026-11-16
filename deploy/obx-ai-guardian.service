@@ -1,0 +1,14 @@
+[Unit]
+Description=ObsidianX Heuristic Network Monitor (Dry-Run Safe)
+After=network.target docker.service
+
+[Service]
+Type=simple
+User=ubuntu
+WorkingDirectory=/home/ubuntu/obsidianx/runtime
+ExecStart=/usr/bin/python3 -u /home/ubuntu/obsidianx/runtime/obx_ai_guardian.py
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
