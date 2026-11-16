@@ -18,12 +18,55 @@ def get_info():
         return json.loads(r.read().decode("utf-8"))
 
 
+BANNER_PATH = os.environ.get("OBX_BANNER_PATH", "/home/ubuntu/obsidianx-repo/assets/obx_testnet_banner.jpg")
+
+
 def tg_call(method: str, params: dict):
     url = f"https://api.telegram.org/bot{TG_TOKEN}/{method}"
     data = json.dumps(params).encode("utf-8")
     req = urllib.request.Request(url, data=data, headers={"Content-Type": "application/json"})
     with urllib.request.urlopen(req, timeout=25) as r:
         return json.loads(r.read().decode("utf-8"))
+
+
+def tg_send_photo(chat_id, photo_path: str, caption: str):
+    boundary = "----OBXBoundary7MA4YWxkTrZu0gW"
+    parts = []
+    for k, v in [("chat_id", str(chat_id)), ("caption", caption)]:
+        parts.append(
+            f"--{boundary}\r\n"
+            f'Content-Disposition: form-data; name="{k}"\r\n\r\n{v}\r\n'.encode("utf-8")
+        )
+    with open(photo_path, "rb") as pf:
+        img_bytes = pf.read()
+    parts.append(
+        f"--{boundary}\r\n"
+        f'Content-Disposition: form-data; name="photo"; filename="{os.path.basename(photo_path)}"\r\n'
+        f"Content-Type: image/jpeg\r\n\r\n".encode("utf-8") + img_bytes + b"\r\n"
+    )
+    parts.append(f"--{boundary}--\r\n".encode("utf-8"))
+    body = b"".join(parts)
+    req = urllib.request.Request(
+        f"https://api.telegram.org/bot{TG_TOKEN}/sendPhoto",
+        data=body,
+        headers={"Content-Type": f"multipart/form-data; boundary={boundary}"},
+    )
+    with urllib.request.urlopen(req, timeout=30) as r:
+        return json.loads(r.read().decode("utf-8"))
+
+
+def build_ad_caption() -> str:
+    return (
+        "ObsidianX (OBX) — Testnet Pública v0.2.6 en vivo\n\n"
+        "Privacidad en C++ sobre Monero v0.18.5.4, Tor .onion nativo, LWMA-1 y binarios verificables con SHA-256 + Cosign.\n\n"
+        "• Pruebas activas: P2P, Tor .onion, RingCT/CLSAG/Bulletproofs+ y RandomX\n"
+        "• Unirse (Linux / WSL2 + Docker):\n"
+        "curl -fsSL https://raw.githubusercontent.com/daviddnk13/obsidianx/main/scripts/unirse_testnet.sh | bash\n\n"
+        "• Explorador: https://obsidianx-obx.duckdns.org\n"
+        "• GitHub: https://github.com/daviddnk13/obsidianx\n"
+        "• Seed P2P: 92.5.87.63:38080\n\n"
+        "Nota: testnet pública descartable (monedas sin valor; la cadena se reiniciará antes de mainnet)."
+    )
 
 
 def build_status_msg(info: dict) -> str:
@@ -81,6 +124,14 @@ def main():
                         ),
                         "disable_web_page_preview": True,
                     })
+                elif txt.startswith("/anuncio"):
+                    cap = build_ad_caption()
+                    if os.path.isfile(BANNER_PATH):
+                        tg_send_photo(TG_CHAT, BANNER_PATH, cap)
+                    else:
+                        tg_call("sendMessage", {"chat_id": TG_CHAT, "text": cap, "disable_web_page_preview": True})
+                    if str(chat_id) != TG_CHAT:
+                        tg_call("sendMessage", {"chat_id": chat_id, "text": f"Anuncio con foto publicado en {TG_CHAT}."})
 
         except Exception as e:
             print(f"[OBX-TG-WARN] getUpdates: {e}", flush=True)
