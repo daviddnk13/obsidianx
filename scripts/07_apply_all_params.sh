@@ -221,11 +221,12 @@ pat = r'(bool core_rpc_server::on_start_mining\([^\)]*\)\s*\{\s*RPC_TRACKER\(sta
 rep = r'\g<1>if (!m_p2p.get_payload_object().is_synchronized() && m_core.get_target_blockchain_height() > m_core.get_current_blockchain_height()) { res.status = CORE_RPC_STATUS_BUSY; return true; }'
 new_txt, n = re.subn(pat, rep, txt, count=1)
 assert n == 1, "CHECK_CORE_READY in on_start_mining not found!"
-pat2 = r'(bool core_rpc_server::on_send_raw_tx\([\s\S]{1,400}?)CHECK_CORE_READY\(\);'
-rep2 = r'\g<1>if (!m_p2p.get_payload_object().is_synchronized() && m_core.get_target_blockchain_height() > m_core.get_current_blockchain_height()) { res.status = CORE_RPC_STATUS_BUSY; return true; }'
-txt, n2 = re.subn(pat2, rep2, new_txt, count=2)
-assert n2 == 2, f"Expected 2 CHECK_CORE_READY in on_send_raw_tx, got {n2}"
-new_txt = txt
+s_idx = new_txt.index('bool core_rpc_server::on_send_raw_tx(')
+e_idx = new_txt.index('CHECK_PAYMENT_MIN1(req, res, COST_PER_TX_RELAY, false);', s_idx)
+sub = new_txt[s_idx:e_idx]
+assert sub.count('CHECK_CORE_READY();') == 2, f"Expected 2 CHECK_CORE_READY in on_send_raw_tx, got {sub.count('CHECK_CORE_READY();')}"
+safe_guard = 'if (!m_p2p.get_payload_object().is_synchronized() && m_core.get_target_blockchain_height() > m_core.get_current_blockchain_height()) { res.status = CORE_RPC_STATUS_BUSY; return true; }'
+new_txt = new_txt[:s_idx] + sub.replace('CHECK_CORE_READY();', safe_guard) + new_txt[e_idx:]
 open(p, 'w', encoding='utf-8').write(new_txt)
 print("Verified: Safe sync-aware guard applied to on_start_mining")
 PYEOF
