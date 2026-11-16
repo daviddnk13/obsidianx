@@ -139,6 +139,13 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           path: dist
+      - name: Install Cosign
+        uses: sigstore/cosign-installer@v3
+      - name: Sign release artifacts with Cosign (keyless OIDC)
+        run: |
+          cd dist/obsidianx-linux-x86_64
+          cosign sign-blob --yes --bundle obsidianx-linux-x86_64.zip.sigstore.json obsidianx-linux-x86_64.zip
+          cosign sign-blob --yes --bundle SHA256SUMS-linux.txt.sigstore.json SHA256SUMS-linux.txt
       - name: Publish GitHub Release
         uses: softprops/action-gh-release@v2
         with:
@@ -146,4 +153,6 @@ jobs:
           fail_on_unmatched_files: true
           files: |
             dist/obsidianx-linux-x86_64/obsidianx-linux-x86_64.zip
+            dist/obsidianx-linux-x86_64/obsidianx-linux-x86_64.zip.sigstore.json
             dist/obsidianx-linux-x86_64/SHA256SUMS-linux.txt
+            dist/obsidianx-linux-x86_64/SHA256SUMS-linux.txt.sigstore.json
