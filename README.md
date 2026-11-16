@@ -4,7 +4,7 @@
 
 # ObsidianX (OBX) - Testnet C++ (Fork de Monero v0.18.5.4)
 
-**Estado actual: Testnet Publica Descartable (`v0.2.1-testnet`) - Las monedas de prueba no tienen valor comercial.**
+**Estado actual: Testnet Publica Descartable (`v0.2.4-testnet`) - Las monedas de prueba no tienen valor comercial.**
 
 </div>
 
