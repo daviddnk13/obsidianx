@@ -2,7 +2,11 @@
 """ObsidianX (OBX) - Official Telegram Status & Onboarding Bot (for own @ObsidianX_OBX channel/group)"""
 import json
 import os
+import socket
 import time
+
+_orig_getaddrinfo = socket.getaddrinfo
+socket.getaddrinfo = lambda *a, **kw: [r for r in _orig_getaddrinfo(*a, **kw) if r[0] == socket.AF_INET]
 import urllib.parse
 import urllib.request
 
