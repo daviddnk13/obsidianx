@@ -238,7 +238,10 @@ p_pool, p_sw = sys.argv[1], sys.argv[2]
 txt = open(p_pool, 'r', encoding='utf-8').read()
 target = '    m_mine_stem_txes = mine_stem_txes;'
 assert target in txt, "m_mine_stem_txes line not found in tx_pool.cpp!"
-txt = txt.replace(target, '    m_mine_stem_txes = true; // OBX: mine stem txs when Tor outbound peers=0', 1)
+txt = txt.replace(target, '    m_mine_stem_txes = true; // OBX: mine stem/local txs when Tor outbound peers=0', 1)
+target_cond = 'if (!meta.matches(relay_category::legacy) && !(m_mine_stem_txes && meta.get_relay_method() == relay_method::stem))'
+assert target_cond in txt, "relay_method check not found in tx_pool.cpp!"
+txt = txt.replace(target_cond, 'if (!meta.matches(relay_category::legacy) && !(m_mine_stem_txes && (meta.get_relay_method() == relay_method::stem || meta.get_relay_method() == relay_method::local)))', 1)
 open(p_pool, 'w', encoding='utf-8').write(txt)
 
 sw = open(p_sw, 'r', encoding='utf-8').read()
