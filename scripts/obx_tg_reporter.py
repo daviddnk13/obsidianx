@@ -101,10 +101,10 @@ def main():
     while True:
         try:
             # 1) Responder comandos /estado o /unirse en el grupo propio
-            updates = tg_call("getUpdates", {"offset": offset, "timeout": 5}).get("result", [])
+            updates = tg_call("getUpdates", {"offset": offset, "timeout": 0}).get("result", [])
             for u in updates:
                 offset = u["update_id"] + 1
-                msg = u.get("message", {})
+                msg = u.get("message") or u.get("channel_post") or {}
                 txt = (msg.get("text") or "").strip().lower()
                 chat_id = msg.get("chat", {}).get("id")
                 if not chat_id:
