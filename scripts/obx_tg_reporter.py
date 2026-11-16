@@ -40,7 +40,7 @@ def build_status_msg(info: dict) -> str:
         f"Emision Testnet: {em} OBX | T. Bloque: {bt}s\n"
         f"Pares P2P: {pin} IN / {pout} OUT\n\n"
         f"Unirse (Linux + Docker):\n"
-        f"curl -sSL https://raw.githubusercontent.com/daviddnk13/obsidianx/v0.2.5-testnet/scripts/unirse_testnet.sh | bash\n\n"
+        f"curl -sSL https://raw.githubusercontent.com/daviddnk13/obsidianx/v0.2.6-testnet/scripts/unirse_testnet.sh | bash\n\n"
         f"Explorador: https://obsidianx-obx.duckdns.org\n"
         f"GitHub: https://github.com/daviddnk13/obsidianx\n\n"
         f"#ObsidianX #OBX #Privacy #CryptoNote #RandomX #MoneroFork #Testnet #OpenSource"
@@ -74,7 +74,7 @@ def main():
                         "chat_id": chat_id,
                         "text": (
                             "Conecta tu nodo Testnet en 1 comando (Linux + Docker):\n"
-                            "curl -sSL https://raw.githubusercontent.com/daviddnk13/obsidianx/v0.2.5-testnet/scripts/unirse_testnet.sh | bash\n\n"
+                            "curl -sSL https://raw.githubusercontent.com/daviddnk13/obsidianx/v0.2.6-testnet/scripts/unirse_testnet.sh | bash\n\n"
                             "Clearnet Seed: 92.5.87.63:38080\n"
                             "Tor Restricted RPC: 3txl2dzhuq424zrpp6bfwfgbgjcsqcironoladfpak43utmtqxrtylid.onion:38081\n"
                             "Guia completa: https://github.com/daviddnk13/obsidianx/blob/main/docs/TESTNET_GUIDE.md"
